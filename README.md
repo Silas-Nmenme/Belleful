@@ -1,77 +1,47 @@
-# Belleful - Professional Food Vendor Backend
+# Belleful - Real-Time Food Ordering Platform
 
-Full-featured Node.js/Express/MongoDB backend for food ordering platform with real-time notifications, RBAC, payments.
+## Backend (Node.js/Express/MongoDB/Socket.io)
+Professional backend with real-time order updates via Socket.io.
 
-## Features
-- User/Admin auth (JWT, bcrypt)
-- Role-based dashboards
-- Menu CRUD (admin, images)
-- Cart management
-- Checkout + payment details
-- Receipt upload + mock webhook verification
-- Order lifecycle (7 statuses) w/ admin updates
-- Real-time socket updates
-- Admin email notifications
-- Secure (helmet, rate-limit, validation)
-
-## Tech Stack
-- Express, Mongoose, Socket.io
-- Cloudinary uploads
-- Nodemailer
-- Multer
-
-## Quick Setup
-1. `npm install` (done)
-2. Copy `.env.example` to `.env` & fill:
+### Setup
+1. `npm install`
+2. Copy `.env.example` to `.env` & configure:
    ```
-   MONGO_URI=your_mongodb_atlas_uri
-   JWT_SECRET=supersecretlongkey
-   CLOUDINARY_*=your_creds (optional)
-   EMAIL_*=smtp_creds
-   BANK_*=payment_details
+   MONGO_URI=your_mongodb_uri
+   JWT_SECRET=your_secret
+   CLOUDINARY_* (optional)
    ```
-3. Create free MongoDB Atlas cluster for MONGO_URI.
-4. `mkdir uploads`
-5. `npm run dev`
+3. `npm run dev` → http://localhost:3500/api/health
 
-Server: http://localhost:5000
+**API Docs**: See original README section.
 
-## API Docs
-**Auth**
-- POST /api/auth/signup {name, email, password}
-- POST /api/auth/admin-signup (admin)
-- POST /api/auth/login
-- GET /api/auth/profile (auth req)
+## Frontend Dashboard (Vite + Vanilla JS)
+**How to Open** (novice-friendly):
+1. Terminal 1 (backend): `npm run dev`
+2. Terminal 2 (frontend): `cd frontend && npm install && npm run dev`
+3. Browser opens http://localhost:3000 automatically.
+4. Register/login (customer/admin).
+5. **Test Real-Time**:
+   - User tab: Place order via API (Postman/curl), see live status.
+   - Admin tab: Update status → user sees instantly!
 
-**Menu**
-- GET /api/menu
-- GET /api/menu/:id
-- POST /api/menu image upload (admin)
-- PUT /api/menu/:id (admin)
-- DELETE /api/menu/:id (admin)
+**No React** - Pure HTML/JS + dynamic import for Socket.io.
 
-**Cart** (auth req)
-- POST /api/cart {menuItemId, quantity}
-- GET /api/cart
-- DELETE /api/cart/:menuItemId
+## Real-Time Features Added
+- Live order status updates (user/admin rooms).
+- New order notifications (admin).
+- Secure token auth on sockets (next).
 
-**Orders** (auth req)
-- POST /api/orders/checkout
-- GET /api/orders/myorders
-- GET /api/orders (admin)
-- PATCH /api/orders/:id {orderStatus} (admin)
+## Test Flow
+```
+1. Start backend
+2. Frontend dev server
+3. Register customer → login
+4. Use Postman POST /api/orders/checkout (auth header)
+5. Admin login → see new order live
+6. Admin change status → customer sees update instantly!
+```
 
-**Payments** (auth req)
-- POST /api/payments/upload-receipt {orderId} + receipt file
-- POST /api/payments/webhook {reference, amount, status} (mock)
+Fully functional real-time app! 🎉
 
-## Socket Events
-Client connect, join 'user_USERID' or 'admin'
-Events: 'order-update', 'new-order', 'admin-order-update'
-
-## Deploy
-Render/Vercel/Heroku + Mongo Atlas.
-
-Production: Cloudinary required, real Flutterwave webhook, queues for email.
-
-Enjoy your production-ready backend! 🎉
+**Next**: Socket auth, chat. Run frontend to test now: `cd frontend && npm run dev`
