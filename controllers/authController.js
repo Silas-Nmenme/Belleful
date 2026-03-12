@@ -29,28 +29,38 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: "Email and OTP are required" });
+  }
   try {
     const user = await User.findOne({ email }).select('+otp otpExpires');
-    if (!user || user.otp !== otp) {
-      return res.status(404).json({ success: false, message: "Invalid OTP" });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
-    
-    console.log('OTP match confirmed for:', user.email);
-    if (user.otpExpires < new Date()) {
-      return res.status(400).json({ success: false, message: 'OTP expired' });
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: "Email already verified" });
+    }
+
+    console.log('Stored OTP:', user.otp, 'Input OTP:', otp, 'Match:', user.otp === otp);
+    if (user.otp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: "OTP expired" });
     }
 
     user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    const savedUser = await user.save({ validateBeforeSave: false });
-    console.log('Save result:', savedUser.isVerified);
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
 
-    // Confirm in DB
-    const dbUser = await User.findById(savedUser._id).select('isVerified');
-    console.log('DB confirmation:', dbUser.isVerified);
-
-    // Old log moved to after save
+    console.log('User verification saved:', { 
+      id: user._id, 
+      email: user.email, 
+      isVerified: true 
+    });
 
     // Send welcome email
     await sendWelcomeEmail(user.email, user.name);
@@ -58,13 +68,13 @@ exports.verifyOTP = async (req, res, next) => {
     // OTP is valid, send token response
     sendTokenResponse(user, 200, res);
   } catch (error) {
+    console.error('Verify OTP error:', error);
     if (error.message.includes('Missing credentials') || error.message.includes('Invalid login')) {
       return res.status(500).json({ 
         success: false, 
         message: 'Email service temporarily unavailable. Please try again in a few minutes.' 
       });
     }
-    console.error('Auth error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
