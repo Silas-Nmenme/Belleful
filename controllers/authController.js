@@ -28,9 +28,9 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
-  const { otp } = req.body;
+  const { email, otp } = req.body;
   try {
-    const user = await User.findOne({ otp: otp }).select('+otp otpExpires');
+    const user = await User.findOne({ email, otp }).select('+otp otpExpires');
     if (!user) {
       return res.status(404).json({ success: false, message: "Invalid OTP" });
     }
@@ -40,10 +40,16 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'OTP expired' });
     }
 
-    user.otpVerified = true;
+    user.isVerified = true;
     user.otp = null; // Clear OTP after verification
     user.otpExpires = undefined;
     await user.save();
+
+    console.log('User verification saved:', { 
+      id: user._id, 
+      email: user.email, 
+      isVerified: user.isVerified 
+    });
 
     // Send welcome email
     await sendWelcomeEmail(user.email, user.name);
