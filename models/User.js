@@ -37,6 +37,14 @@ const userSchema = new mongoose.Schema(
     type: String,
     sparse: true
   },
+  provider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
+  },
+  avatar: {
+    type: String
+  },
 
   otp: {
     type: String,

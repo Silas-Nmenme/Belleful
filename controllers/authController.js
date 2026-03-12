@@ -1,16 +1,17 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const { sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
+const { sendOTPEmail, sendWelcomeEmail, sendTemplateEmail } = require('../services/emailService');
 const { OAuth2Client } = require('google-auth-library');
+const google = require('googleapis');
 
 // Create JWT token & send response
 const sendTokenResponse = (user, statusCode, res) => {
 
   const token = jwt.sign(
-    { id: user._id, role: user.role },
+    { id: user._id, email: user.email, provider: user.provider || 'local' },
     process.env.JWT_SECRET,
-    { expiresIn: '1d' }
+    { expiresIn: process.env.JWT_EXPIRATION || '1d' }
   );
 
   const options = {
@@ -28,7 +29,8 @@ const sendTokenResponse = (user, statusCode, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        provider: user.provider || 'local'
       }
     });
 };
@@ -261,61 +263,151 @@ exports.registerAdmin = async (req,res) => {
 
 
 
-// =====================================
-// GOOGLE LOGIN
-// =====================================
-exports.googleLogin = async (req,res) => {
-
+// Initiate Google OAuth - Generate OAuth URL
+exports.initiateGoogleAuth = async (req, res) => {
   try {
+    
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
+    );
 
-    const { idToken } = req.body;
-
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience:process.env.GOOGLE_CLIENT_ID
+    // Generate the url that will be used for the consent dialog
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      include_granted_scopes: true,
+      state: JSON.stringify({
+        timestamp: Date.now(),
+      })
     });
 
-    const payload = ticket.getPayload();
+    return res.status(200).json({
+      message: "Google OAuth URL generated",
+      authUrl: authorizeUrl
+    });
 
-    const { sub:googleId,email,name } = payload;
+  } catch (error) {
+    console.error("Error generating Google OAuth URL:", error);
+    return res.status(500).json({ message: "Failed to generate OAuth URL" });
+  }
+};
 
+// Handle Google OAuth Callback
+exports.handleGoogleCallback = async (req, res) => {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    return res.status(400).json({ message: "OAuth authorization denied", error });
+  }
+
+  if (!code) {
+    return res.status(400).json({ message: "Authorization code is required" });
+  }
+
+  try {
+    
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
+    );
+
+    // Exchange authorization code for access token
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Get user information
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
+
+    const { data } = await oauth2.userinfo.get();
+    
+    const {
+      id: googleId,
+      email,
+      name,
+      picture: avatar,
+      verified_email: emailVerified
+    } = data;
+
+    if (!emailVerified) {
+      return res.status(400).json({ message: "Google email not verified" });
+    }
+
+    // Check if user exists with this Google ID
     let user = await User.findOne({ googleId });
-
+    let isNewUser = false;
+    
     if (!user) {
-
+      // Check if user exists with this email (regular signup)
       user = await User.findOne({ email });
-
+      
       if (user) {
-
+        // Link Google account to existing user
         user.googleId = googleId;
+        user.provider = 'google';
+        user.avatar = avatar;
         user.isVerified = true;
-
         await user.save();
-
       } else {
-
-        user = await User.create({
-          name: name || email.split('@')[0],
+        // Create new user with Google OAuth
+        user = new User({
+          name,
           email,
           googleId,
-          isVerified:true
+          provider: 'google',
+          avatar,
+          isVerified: true
         });
+        await user.save();
+        isNewUser = true;
 
+        // Send welcome email for new Google users
+        const welcomeHtml = emailTemplates.googleWelcomeTemplate(name);
+        await sendTemplateEmail(
+          email,
+          'Welcome to Belleful - Google Signup!',
+          welcomeHtml
+        );
       }
     }
 
-    sendTokenResponse(user,200,res);
-
-  } catch(error) {
-
-    console.error("Google auth error:",error);
-
-    res.status(401).json({
-      success:false,
-      message:"Invalid Google token"
+    // Generate JWT token
+    const jwtPayload = {
+      id: user._id,
+      email: user.email,
+      provider: user.provider
+    };
+    
+    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRATION || '1d',
     });
+
+    // Send response (no cookie for callback, frontend handles)
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        provider: user.provider,
+        avatar: user.avatar
+      }
+    });
+
+  } catch (error) {
+    console.error("Google callback error:", error);
+    res.status(500).json({ message: "Google authentication failed" });
   }
 };
 

@@ -35,7 +35,69 @@ const emailTemplates = {
 </html>
   `,
 
+  // Google welcome template
+  googleWelcomeTemplate: (name) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to Belleful - Google Signup!</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .google-badge { background: #4285f4; color: white; padding: 10px 20px; border-radius: 20px; display: inline-block; margin: 10px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome to Belleful, ${name}! 🎉</h1>
+    <div class="google-badge">Signed up with Google</div>
+  </div>
+  <div class="content">
+    <h2>Your Google account is connected!</h2>
+    <p>Thanks for joining with Google. Start exploring delicious meals right away!</p>
+    <p>No verification needed - you\'re all set!</p>
+  </div>
+  <div class="footer">
+    <p>© 2026 Belleful. All rights reserved.</p>
+  </div>
+</body>
+</html>
+  `,
+
   // Welcome email after verification
+  welcome: (name) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to Belleful - Google Signup!</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .google-badge { background: #4285f4; color: white; padding: 10px 20px; border-radius: 20px; display: inline-block; margin: 10px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome to Belleful, ${name}! 🎉</h1>
+    <div class="google-badge">Signed up with Google</div>
+  </div>
+  <div class="content">
+    <h2>Your Google account is connected!</h2>
+    <p>Thanks for joining with Google. Start exploring delicious meals right away!</p>
+    <p>No verification needed - you\'re all set!</p>
+  </div>
+  <div class="footer">
+    <p>© 2026 Belleful. All rights reserved.</p>
+  </div>
+</body>
+</html>
+  `,
   welcome: (name) => `
 <!DOCTYPE html>
 <html>

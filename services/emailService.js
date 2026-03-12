@@ -53,23 +53,33 @@ const sendOTPEmail = async (email, name, otp) => {
   }
 };
 
-// Send welcome email
-const sendWelcomeEmail = async (email, name) => {
+// Send template email (generic)
+const sendTemplateEmail = async (email, subject, html, text = '') => {
   const mailOptions = {
     from: process.env.MAIL_USER,
     to: email,
-    subject: 'Welcome to Belleful!',
-    html: emailTemplates.welcome(name)
+    subject,
+    html,
+    text
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Welcome email sent to: ${email}`);
-    return { success: true, message: 'Welcome email sent successfully' };
+    console.log(`✅ Template email sent to: ${email}`);
+    return { success: true };
   } catch (err) {
-    console.error(`❌ Welcome email failed to ${email}:`, err.message);
+    console.error(`❌ Template email failed to ${email}:`, err.message);
     return { success: false, error: err.message };
   }
+};
+
+// Send welcome email
+const sendWelcomeEmail = async (email, name) => {
+  return sendTemplateEmail(
+    email,
+    'Welcome to Belleful!',
+    emailTemplates.welcome(name)
+  );
 };
 
 // Send order confirmation to customer
@@ -125,6 +135,7 @@ const sendNewOrderEmail = async (order) => {
 module.exports = { 
   sendOTPEmail, 
   sendWelcomeEmail, 
+  sendTemplateEmail,
   sendOrderConfirmationEmail,
   sendNewOrderEmail 
 };
