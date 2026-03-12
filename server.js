@@ -62,7 +62,7 @@ app.get('/api/health', (req, res) => res.status(200).json({ status: 'OK', messag
 
 // 404
 app.use('*', (req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({ success: true, message: 'Belleful Backend Running' });
 });
 
 // Error handler
