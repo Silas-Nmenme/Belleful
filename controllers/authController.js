@@ -28,10 +28,10 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
-  const { email, rawOtp } = req.body;
-  const inputOTP = String(rawOtp || '').trim();
+  const { email, otp } = req.body;
+  const inputOTP = String(otp || '').trim();
   
-  if (!email || !rawOtp) {
+  if (!email || !otp || inputOTP.length !== 6) {
     return res.status(400).json({ success: false, message: "Email and OTP are required" });
   }
   
@@ -50,7 +50,7 @@ exports.verifyOTP = async (req, res, next) => {
       'Strict Match:', user.otp === inputOTP, 
       'Loose Match:', user.otp == inputOTP);
 
-    if (user.otp != inputOTP) {
+    if (!user.otp || user.otp !== inputOTP) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
@@ -59,9 +59,9 @@ exports.verifyOTP = async (req, res, next) => {
     }
 
     user.isVerified = true;
-    user.otp = null;
-    user.otpExpires = null;
-    await user.save({ validateBeforeSave: false });
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
 
     console.log('User verification saved:', { 
       id: user._id, 
