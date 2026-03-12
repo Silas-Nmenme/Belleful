@@ -28,7 +28,8 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
-  const { email, otp } = req.body;
+const { email, otp: rawOtp } = req.body;
+  const inputOTP = String(rawOtp || '').trim();
   if (!email || !otp) {
     return res.status(400).json({ success: false, message: "Email and OTP are required" });
   }
@@ -42,8 +43,10 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Email already verified" });
     }
 
-    console.log('Stored OTP:', user.otp, 'Input OTP:', otp, 'Match:', user.otp === otp);
-    if (user.otp !== otp) {
+console.log('Stored OTP:', JSON.stringify({val: user.otp, type: typeof user.otp, len: user.otp?.length}), 
+  'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length}), 
+  'Match:', user.otp === inputOTP, 'Loose match:', user.otp == inputOTP);
+if (user.otp != inputOTP) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
@@ -52,7 +55,9 @@ exports.verifyOTP = async (req, res, next) => {
     }
 
     user.isVerified = true;
-    user.otp = null;
+user.otp = null;
+  // Defensive trim for future
+  if (typeof user.otp === 'string') user.otp = user.otp.trim();
     user.otpExpires = null;
     await user.save();
 
