@@ -28,11 +28,13 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
-const { email, otp: rawOtp } = req.body;
+  const { email, rawOtp } = req.body;
   const inputOTP = String(rawOtp || '').trim();
-  if (!email || !otp) {
+  
+  if (!email || !rawOtp) {
     return res.status(400).json({ success: false, message: "Email and OTP are required" });
   }
+  
   try {
     const user = await User.findOne({ email }).select('+otp otpExpires');
     if (!user) {
@@ -43,10 +45,12 @@ const { email, otp: rawOtp } = req.body;
       return res.status(400).json({ success: false, message: "Email already verified" });
     }
 
-console.log('Stored OTP:', JSON.stringify({val: user.otp, type: typeof user.otp, len: user.otp?.length}), 
-  'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length}), 
-  'Match:', user.otp === inputOTP, 'Loose match:', user.otp == inputOTP);
-if (user.otp != inputOTP) {
+    console.log('Stored OTP:', JSON.stringify({val: user.otp, type: typeof user.otp, len: user.otp?.length}), 
+      'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length}), 
+      'Strict Match:', user.otp === inputOTP, 
+      'Loose Match:', user.otp == inputOTP);
+
+    if (user.otp != inputOTP) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
@@ -55,11 +59,9 @@ if (user.otp != inputOTP) {
     }
 
     user.isVerified = true;
-user.otp = null;
-  // Defensive trim for future
-  if (typeof user.otp === 'string') user.otp = user.otp.trim();
+    user.otp = null;
     user.otpExpires = null;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     console.log('User verification saved:', { 
       id: user._id, 
@@ -67,10 +69,10 @@ user.otp = null;
       isVerified: true 
     });
 
-    // Send welcome email
-    await sendWelcomeEmail(user.email, user.name);
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, user.name).catch(console.error);
 
-    // OTP is valid, send token response
+    // OTP valid, send token
     sendTokenResponse(user, 200, res);
   } catch (error) {
     console.error('Verify OTP error:', error);
