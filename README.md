@@ -3,15 +3,7 @@
 ## Backend (Node.js/Express/MongoDB/Socket.io)
 Professional backend with real-time order updates via Socket.io.
 
-### Setup
-1. `npm install`
-2. Copy `.env.example` to `.env` & configure:
-   ```
-   MONGO_URI=your_mongodb_uri
-   JWT_SECRET=your_secret
-   CLOUDINARY_* (optional)
-   ```
-3. `npm run dev` → http://localhost:3500/api/health
+### Setup\n1. `npm install`\n2. Copy `.env.example` to `.env` & configure **all required vars**:\n   ```bash\n   # Database & Auth (REQUIRED)\n   MONGO_URI=your_mongodb_uri\n   JWT_SECRET=your_super_secret_key_32chars_min\n   \n   # Google OAuth (REQUIRED for social login)\n   GOOGLE_CLIENT_ID=xxx.googleusercontent.com\n   GOOGLE_CLIENT_SECRET=xxx\n   GOOGLE_REDIRECT_URI=https://your-vercel-url.vercel.app/api/auth/google/callback\n   \n   # Email (OPTIONAL but recommended for OTP)\n   EMAIL_HOST=smtp.gmail.com\n   EMAIL_PORT=587\n   EMAIL_USER=yourapp@gmail.com\n   EMAIL_PASS=your_app_password\n   ```\n   \n   **Google OAuth Setup:**\n   1. Google Cloud Console → New OAuth 2.0 Client ID\n   2. Authorized redirect: `https://your-vercel-app.vercel.app/api/auth/google/callback`\n   3. Copy Client ID/Secret to .env\n   \n3. `npm run dev` → http://localhost:3500
 
 **API Docs**: See original README section.
 

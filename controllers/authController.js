@@ -265,14 +265,38 @@ exports.registerAdmin = async (req,res) => {
 
 // Initiate Google OAuth - Generate OAuth URL
 exports.initiateGoogleAuth = async (req, res) => {
+  // Validate required env vars first
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI?.trim() || 'https://belleful-fphf.vercel.app/api/users/google/callback';
+
+  if (!clientId) {
+    console.error('❌ GOOGLE_CLIENT_ID missing from .env');
+    return res.status(500).json({ 
+      message: 'Google OAuth misconfigured: GOOGLE_CLIENT_ID missing. Check .env file.' 
+    });
+  }
+  
+  if (!clientSecret) {
+    console.error('❌ GOOGLE_CLIENT_SECRET missing from .env');
+    return res.status(500).json({ 
+      message: 'Google OAuth misconfigured: GOOGLE_CLIENT_SECRET missing. Check .env file.' 
+    });
+  }
+  
+  if (!redirectUri) {
+    console.error('❌ GOOGLE_REDIRECT_URI missing from .env');
+    return res.status(500).json({ 
+      message: 'Google OAuth misconfigured: GOOGLE_REDIRECT_URI missing. Check .env file.' 
+    });
+  }
+
+  console.log(`✅ Google OAuth config validated: clientId=${clientId.slice(0,20)}..., redirect=${redirectUri}`);
+
   try {
-    
-    // Create OAuth2 client
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
-    );
+    // Create OAuth2 client - use google-auth-library directly
+    const { OAuth2 } = require('google-auth-library');
+    const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
     // Generate the url that will be used for the consent dialog
     const authorizeUrl = oauth2Client.generateAuthUrl({
@@ -287,14 +311,24 @@ exports.initiateGoogleAuth = async (req, res) => {
       })
     });
 
+    console.log('✅ OAuth URL generated successfully');
     return res.status(200).json({
+      success: true,
       message: "Google OAuth URL generated",
-      authUrl: authorizeUrl
+      authUrl: authorizeUrl,
+      config: {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        redirectUri
+      }
     });
 
   } catch (error) {
-    console.error("Error generating Google OAuth URL:", error);
-    return res.status(500).json({ message: "Failed to generate OAuth URL" });
+    console.error("❌ OAuth2 Error:", error.message);
+    return res.status(500).json({ 
+      message: `OAuth generation failed: ${error.message}`,
+      hint: 'Verify credentials in Google Cloud Console match .env exactly (no extra spaces)'
+    });
   }
 };
 
