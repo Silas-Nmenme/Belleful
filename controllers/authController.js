@@ -28,112 +28,119 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
-  const { email, otp } = req.body;
-  const inputOTP = String(otp || '').trim();
-  
-  if (!email || !otp || inputOTP.length !== 6) {
-    return res.status(400).json({ success: false, message: "Email and OTP are required" });
-  }
-  
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+    const inputOTP = String(otp || '').trim();
+
+    if (!email || !inputOTP || inputOTP.length !== 6 || !/^\d{6}$/.test(inputOTP)) {
+      return res.status(400).json({ success: false, message: "Valid email and 6-digit OTP required" });
+    }
+
+    // Find user with valid OTP
     const user = await User.findOne({ 
-      email, 
+      email: email.toLowerCase().trim(),
       otpExpires: { $gt: new Date() }
     }).select('+otp otpExpires');
+
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP. Please request new one." });
     }
 
     if (user.isVerified) {
       return res.status(400).json({ success: false, message: "Email already verified" });
     }
 
-    // Enhanced logging
-    console.log('REQ BODY:', JSON.stringify(req.body, null, 2));
+    // Normalize & compare OTPs
     const storedOTP = (user.otp || '').trim();
-    const inputCharCodes = Array.from(inputOTP).map(c => c.charCodeAt(0));
-    const storedCharCodes = Array.from(storedOTP).map(c => c.charCodeAt(0));
-    console.log('Stored OTP:', JSON.stringify({val: storedOTP, type: typeof storedOTP, len: storedOTP.length, charCodes: storedCharCodes}), 
-      'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length, charCodes: inputCharCodes}), 
-      'Strict Match:', storedOTP === inputOTP, 
-      'Numeric Match:', parseInt(storedOTP) === parseInt(inputOTP));
+    const numericStored = parseInt(storedOTP, 10);
+    const numericInput = parseInt(inputOTP, 10);
 
-    if (!storedOTP || storedOTP !== inputOTP || parseInt(storedOTP) !== parseInt(inputOTP)) {
+    // Detailed logging
+    console.log('OTP Verification:', {
+      email,
+      storedOTP,
+      storedLength: storedOTP.length,
+      storedNumeric: numericStored,
+      inputOTP,
+      inputLength: inputOTP.length,
+      inputNumeric: numericInput,
+      strictMatch: storedOTP === inputOTP,
+      numericMatch: numericStored === numericInput && !isNaN(numericStored)
+    });
+
+    const isValidOTP = storedOTP === inputOTP || (numericStored === numericInput && !isNaN(numericStored));
+
+    if (!isValidOTP) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
-    if (user.otpExpires < Date.now()) {
-      return res.status(400).json({ success: false, message: "OTP expired" });
-    }
-
+    // Verify user
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
-    console.log('User verification saved:', { 
-      id: user._id, 
-      email: user.email, 
-      isVerified: true 
-    });
+    console.log(`✅ User verified: ${user.email}`);
 
-    // Send welcome email (non-blocking)
+    // Send welcome email (fire & forget)
     sendWelcomeEmail(user.email, user.name).catch(console.error);
 
-    // OTP valid, send token
+    // Send auth token
     sendTokenResponse(user, 200, res);
+
   } catch (error) {
     console.error('Verify OTP error:', error);
-    if (error.message.includes('Missing credentials') || error.message.includes('Invalid login')) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Email service temporarily unavailable. Please try again in a few minutes.' 
-      });
-    }
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error during verification' });
   }
 };
 
+
+
+
+
 // @desc    Register user
-// @route   POST /api/auth/signup
+// @route   POST /api/auth/signup  
 // @access  Public
 exports.registerUser = async (req, res, next) => {
-  let { name, email, password } = req.body;
-
   try {
-    // Validation
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
+    let { name, email, password } = req.body;
+
+    // Check existing
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    // Generate OTP
     const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
 
-    // Create user with OTP
     const user = await User.create({ 
-      name, 
-      email, 
-      password, 
-      otp, 
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      otp,
       otpExpires 
     });
 
-    // Send OTP email
+    // Send OTP
     await sendOTPEmail(email, name, otp);
 
     res.status(201).json({ 
       success: true, 
-      message: 'User registered. Please check your email for OTP to verify.' 
+      message: 'User created! Check email for verification OTP.' 
     });
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
