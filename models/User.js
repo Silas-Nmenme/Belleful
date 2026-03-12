@@ -1,61 +1,94 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema(
+{
   name: {
     type: String,
     required: [true, 'Please add a name'],
     trim: true,
     maxlength: 50
   },
+
   email: {
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
+    index: true,
     lowercase: true,
+    trim: true,
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please add a valid email']
   },
+
   password: {
     type: String,
     required: [true, 'Please add a password'],
     minlength: 6,
     select: false
   },
+
   role: {
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
   },
+
   googleId: {
     type: String,
     sparse: true
   },
+
+  otp: {
+    type: String,
+    minlength: 6,
+    maxlength: 6
+  },
+
+  otpExpires: {
+    type: Date
+  },
+
   isVerified: {
     type: Boolean,
     default: false
-  },
-  otp: {
-    type: String
-  },
-  otpExpires: {
-    type: Date
   }
-}, {
+
+},
+{
   timestamps: true
 });
 
-// Encrypt password
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+
+
+// ============================
+// HASH PASSWORD BEFORE SAVE
+// ============================
+userSchema.pre('save', async function (next) {
+
+  if (!this.isModified('password')) {
+    return next();
+  }
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+
   next();
 });
 
-// Match password
-userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+
+
+// ============================
+// MATCH PASSWORD METHOD
+// ============================
+userSchema.methods.matchPassword = async function (enteredPassword) {
+
+  return await bcrypt.compare(
+    enteredPassword,
+    this.password
+  );
+
 };
 
-module.exports = mongoose.model('User', userSchema);
 
+
+module.exports = mongoose.model('User', userSchema);

@@ -1,18 +1,22 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const { generateOTP } = require('../utils/emailTemplates');
 const { sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
 const { OAuth2Client } = require('google-auth-library');
 
-// Get token from model, create cookie & send response
+// Create JWT token & send response
 const sendTokenResponse = (user, statusCode, res) => {
-  // Create token
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: '1d',
-  });
 
-  const options = { httpOnly: true, secure: process.env.NODE_ENV === 'production' };
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production'
+  };
 
   res
     .status(statusCode)
@@ -20,249 +24,326 @@ const sendTokenResponse = (user, statusCode, res) => {
     .json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
     });
 };
 
-// @desc    Verify OTP
-// @route   POST /api/auth/verify-otp
-// @access  Public
-exports.verifyOTP = async (req, res, next) => {
+// Generate 6-digit OTP
+exports.generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+
+
+// =====================================
+// VERIFY OTP
+// =====================================
+exports.verifyOTP = async (req, res) => {
   try {
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      return res.status(400).json({ success:false, errors: errors.array() });
     }
 
     const { email, otp } = req.body;
-    const inputOTP = String(otp || '').trim();
 
-    if (!email || !inputOTP || inputOTP.length !== 6 || !/^\d{6}$/.test(inputOTP)) {
-      return res.status(400).json({ success: false, message: "Valid email and 6-digit OTP required" });
+    const normalizedEmail = email.toLowerCase().trim();
+    const inputOTP = String(otp).trim();
+
+    if (inputOTP.length !== 6) {
+      return res.status(400).json({
+        success:false,
+        message:"OTP must be 6 digits"
+      });
     }
 
-    // Find user with valid OTP
-    const user = await User.findOne({ 
-      email: email.toLowerCase().trim(),
-      otpExpires: { $gt: new Date() }
-    }).select('+otp otpExpires');
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('+otp otpExpires');
 
     if (!user) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP. Please request new one." });
+      return res.status(404).json({
+        success:false,
+        message:"User not found"
+      });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ success: false, message: "Email already verified" });
+      return res.status(400).json({
+        success:false,
+        message:"Email already verified"
+      });
     }
 
-    // Normalize & compare OTPs
-    const storedOTP = (user.otp || '').trim();
-    const numericStored = parseInt(storedOTP, 10);
-    const numericInput = parseInt(inputOTP, 10);
-
-    // Detailed logging
-    console.log('OTP Verification:', {
-      email,
-      storedOTP,
-      storedLength: storedOTP.length,
-      storedNumeric: numericStored,
-      inputOTP,
-      inputLength: inputOTP.length,
-      inputNumeric: numericInput,
-      strictMatch: storedOTP === inputOTP,
-      numericMatch: numericStored === numericInput && !isNaN(numericStored)
-    });
-
-    const isValidOTP = storedOTP === inputOTP || (numericStored === numericInput && !isNaN(numericStored));
-
-    if (!isValidOTP) {
-      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    if (!user.otp || user.otp !== inputOTP) {
+      return res.status(400).json({
+        success:false,
+        message:"Invalid OTP"
+      });
     }
 
-    // Verify user
+    if (!user.otpExpires || user.otpExpires < new Date()) {
+      return res.status(400).json({
+        success:false,
+        message:"OTP expired"
+      });
+    }
+
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
-    await user.save({ validateBeforeSave: false });
 
-    console.log(`✅ User verified: ${user.email}`);
+    await user.save({ validateBeforeSave:false });
 
-    // Send welcome email (fire & forget)
+    console.log(`User verified: ${user.email}`);
+
     sendWelcomeEmail(user.email, user.name).catch(console.error);
 
-    // Send auth token
-    sendTokenResponse(user, 200, res);
+    sendTokenResponse(user,200,res);
 
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    res.status(500).json({ success: false, message: 'Server error during verification' });
+  } catch(error) {
+
+    console.error("Verify OTP error:", error);
+
+    res.status(500).json({
+      success:false,
+      message:"Server error during verification"
+    });
   }
 };
 
 
 
+// =====================================
+// REGISTER USER
+// =====================================
+exports.registerUser = async (req,res) => {
 
-
-// @desc    Register user
-// @route   POST /api/auth/signup  
-// @access  Public
-exports.registerUser = async (req, res, next) => {
   try {
+
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      return res.status(400).json({
+        success:false,
+        errors:errors.array()
+      });
     }
 
     let { name, email, password } = req.body;
 
-    // Check existing
-    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
-    if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+    email = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success:false,
+        message:"User already exists"
+      });
     }
 
-    const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
+    const otp = exports.generateOTP();
 
-    const user = await User.create({ 
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = await User.create({
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email,
       password,
       otp,
-      otpExpires 
+      otpExpires
     });
 
-    // Send OTP
-    await sendOTPEmail(email, name, otp);
+    await sendOTPEmail(email,name,otp);
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'User created! Check email for verification OTP.' 
+    res.status(201).json({
+      success:true,
+      message:"User registered. Check your email for OTP."
     });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ success: false, message: error.message });
+
+  } catch(error) {
+
+    console.error("Register error:", error);
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
   }
 };
 
-// @desc    Register admin (admin only signup)
-exports.registerAdmin = async (req, res, next) => {
-  let { name, email, password } = req.body;
+
+
+// =====================================
+// REGISTER ADMIN
+// =====================================
+exports.registerAdmin = async (req,res) => {
 
   try {
+
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      return res.status(400).json({
+        success:false,
+        errors:errors.array()
+      });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+    let { name,email,password } = req.body;
+
+    email = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success:false,
+        message:"User already exists"
+      });
     }
 
-    // Generate OTP for admin too
-    const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otp = exports.generateOTP();
 
-    const user = await User.create({ 
-      name, 
-      email, 
-      password, 
-      role: 'admin',
-      otp, 
-      otpExpires 
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role:'admin',
+      otp,
+      otpExpires
     });
 
-    // Send OTP email
-    await sendOTPEmail(email, name, otp);
+    await sendOTPEmail(email,name,otp);
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Admin registered. Please check your email for OTP to verify.' 
+    res.status(201).json({
+      success:true,
+      message:"Admin registered. Verify your email with OTP."
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+
+  } catch(error) {
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
   }
 };
 
-// @desc    Google login/signup
-// @route   POST /api/auth/google
-// @access  Public
-exports.googleLogin = async (req, res, next) => {
+
+
+// =====================================
+// GOOGLE LOGIN
+// =====================================
+exports.googleLogin = async (req,res) => {
+
   try {
+
     const { idToken } = req.body;
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
 
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience:process.env.GOOGLE_CLIENT_ID
     });
 
     const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
+
+    const { sub:googleId,email,name } = payload;
 
     let user = await User.findOne({ googleId });
 
     if (!user) {
-      // Check if user exists by email (for linking)
+
       user = await User.findOne({ email });
+
       if (user) {
-        // Link Google to existing user
+
         user.googleId = googleId;
+        user.isVerified = true;
+
         await user.save();
+
       } else {
-        // Create new user
+
         user = await User.create({
           name: name || email.split('@')[0],
           email,
           googleId,
-          isVerified: true,
+          isVerified:true
         });
+
       }
-    } else if (!user.isVerified) {
-      // Rare: Google user not verified? Verify now
-      user.isVerified = true;
-      await user.save();
     }
 
-    sendTokenResponse(user, 200, res);
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(401).json({ success: false, message: 'Invalid Google token' });
+    sendTokenResponse(user,200,res);
+
+  } catch(error) {
+
+    console.error("Google auth error:",error);
+
+    res.status(401).json({
+      success:false,
+      message:"Invalid Google token"
+    });
   }
 };
 
-// @desc    Login user & admin
-exports.login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
 
-    // Validation
+
+// =====================================
+// LOGIN
+// =====================================
+exports.login = async (req,res) => {
+
+  try {
+
+    const { email,password } = req.body;
+
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      return res.status(400).json({
+        success:false,
+        errors:errors.array()
+      });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+      .select('+password');
 
     if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+
+      return res.status(401).json({
+        success:false,
+        message:"Invalid email or password"
+      });
     }
 
     if (!user.isVerified) {
-      return res.status(401).json({ success: false, message: 'Please verify your email first with OTP' });
+
+      return res.status(401).json({
+        success:false,
+        message:"Please verify your email with OTP first"
+      });
     }
 
-    sendTokenResponse(user, 200, res);
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendTokenResponse(user,200,res);
+
+  } catch(error) {
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
   }
 };
-
