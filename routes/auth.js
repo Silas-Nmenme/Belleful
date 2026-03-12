@@ -4,7 +4,8 @@ const router = express.Router();
 const {
   registerUser,
   registerAdmin,
-  login
+  login,
+  verifyOTP
 } = require('../controllers/authController');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
@@ -22,6 +23,12 @@ router.post('/admin-signup', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 })
 ], registerAdmin);
+
+// Verify OTP
+router.post('/verify-otp', [
+  body('email').isEmail().normalizeEmail(),
+  body('otp').isLength({ min: 6, max: 6 }).isNumeric()
+], verifyOTP);
 
 // Login
 router.post('/login', [

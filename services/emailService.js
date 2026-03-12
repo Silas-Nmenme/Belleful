@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { emailTemplates } = require('../utils/emailTemplates');
 
 // Create transporter
 const transporter = nodemailer.createTransport({
@@ -10,6 +11,44 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
+// Send OTP verification email
+const sendOTPEmail = async (email, name, otp) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Your Belleful Verification Code',
+    html: emailTemplates.otpVerification(name, otp)
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// Send welcome email
+const sendWelcomeEmail = async (email, name) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Welcome to Belleful!',
+    html: emailTemplates.welcome(name)
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// Send order confirmation to customer
+const sendOrderConfirmationEmail = async (order) => {
+  // Assuming order has populated user field
+  const userEmail = order.user.email;
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: userEmail,
+    subject: `Order #${order._id} Confirmed - Belleful`,
+    html: emailTemplates.orderConfirmation(order)
+  };
+
+  await transporter.sendMail(mailOptions);
+};
 
 // Send email to admin on new order
 const sendNewOrderEmail = async (order) => {
@@ -33,5 +72,10 @@ const sendNewOrderEmail = async (order) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendNewOrderEmail };
+module.exports = { 
+  sendOTPEmail, 
+  sendWelcomeEmail, 
+  sendOrderConfirmationEmail,
+  sendNewOrderEmail 
+};
 
