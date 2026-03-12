@@ -6,8 +6,6 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('../config/database.js');
 const path = require('path');
 
-// Connect to DB
-connectDB();
 
 const app = express();
 
@@ -35,23 +33,21 @@ app.use('/api/cart', require('../routes/cart'));
 app.use('/api/orders', require('../routes/orders'));
 app.use('/api/payments', require('../routes/payments'));
 
-// Socket.io - Temporarily disabled for Vercel serverless (use Pusher later)
-// TODO: Replace with WebSocket service like Pusher/Ably
 
-// Health
-app.get('/api/health', (req, res) => res.status(200).json({ status: 'OK', message: 'Belleful Backend Running on Vercel' }));
-
-// 404
-app.use('*', (req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Belleful API');
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Server Error' });
-});
 
-// Vercel serverless export
-module.exports = app;
+// Start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
+  });
+}).catch((error) => {
+  console.error("MongoDB Connection Failed:", error.message);
+  process.exit(1);
+});
 
