@@ -12,7 +12,7 @@ const path = require('path');
 connectDB();
 
 const app = express();
-const PORT = process.env.PORT || 1505;
+const PORT = process.env.PORT || 1500;
 
 // Middleware
 app.use(helmet());
