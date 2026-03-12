@@ -293,10 +293,27 @@ exports.initiateGoogleAuth = async (req, res) => {
   console.log(`✅ Google OAuth config validated: clientId=${clientId.slice(0,20)}..., redirect=${redirectUri}`);
 
   try {
-    console.log(`🔧 Creating OAuth2 client with redirect: ${redirectUri}`);
+  console.log(`🔧 Creating OAuth2 client with redirect: ${redirectUri}`);
+  
+  // DEBUG: Log exact config before OAuth2 constructor
+  console.log('🔍 OAuth2 CONFIG DEBUG:', {
+    clientId: clientId ? `${clientId.slice(0,20)}...` : 'MISSING',
+    clientSecret: clientSecret ? `${clientSecret.slice(0,10)}***` : 'MISSING',
+    redirectUri,
+    typeofOAuth2: typeof OAuth2,
+    OAuth2Keys: OAuth2 ? Object.keys(OAuth2) : 'OAuth2 undefined'
+  });
     
-    // Modern v10+ constructor - object config required
-    const oauth2Client = new OAuth2({
+  if (typeof OAuth2 !== 'function') {
+    console.error('❌ CRITICAL: OAuth2 is not a constructor!', typeof OAuth2);
+    return res.status(500).json({ 
+      message: 'OAuth2 module corrupted. Run `npm ci` and restart server.',
+      debug: typeof OAuth2 
+    });
+  }
+    
+  // Modern v10+ constructor - object config required
+  const oauth2Client = new OAuth2({
       clientId,
       clientSecret,
       redirectUri
@@ -358,6 +375,14 @@ exports.handleGoogleCallback = async (req, res) => {
   }
 
   try {
+    
+    // DEBUG: Same check for callback
+    console.log('🔍 Callback OAuth2 init');
+    
+    if (typeof OAuth2 !== 'function') {
+      console.error('❌ OAuth2 corrupted in callback too');
+      return res.status(500).json({ message: 'OAuth2 module issue' });
+    }
     
     // Modern OAuth2 client (consistent with initiate)
     const oauth2Client = new OAuth2({
