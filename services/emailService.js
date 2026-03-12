@@ -43,7 +43,14 @@ const sendOTPEmail = async (email, name, otp) => {
     html: emailTemplates.otpVerification(name, otp)
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ OTP Email sent to: ${email}`);
+    return { success: true, message: 'OTP email sent successfully' };
+  } catch (err) {
+    console.error(`❌ OTP Email failed to ${email}:`, err.message);
+    return { success: false, error: err.message };
+  }
 };
 
 // Send welcome email
@@ -55,7 +62,14 @@ const sendWelcomeEmail = async (email, name) => {
     html: emailTemplates.welcome(name)
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Welcome email sent to: ${email}`);
+    return { success: true, message: 'Welcome email sent successfully' };
+  } catch (err) {
+    console.error(`❌ Welcome email failed to ${email}:`, err.message);
+    return { success: false, error: err.message };
+  }
 };
 
 // Send order confirmation to customer
@@ -69,7 +83,14 @@ const sendOrderConfirmationEmail = async (order) => {
     html: emailTemplates.orderConfirmation(order)
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Order confirmation sent to: ${userEmail}`);
+    return { success: true, message: 'Order confirmation sent successfully' };
+  } catch (err) {
+    console.error(`❌ Order confirmation failed to ${userEmail}:`, err.message);
+    return { success: false, error: err.message };
+  }
 };
 
 // Send email to admin on new order
@@ -91,7 +112,14 @@ const sendNewOrderEmail = async (order) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ New order email sent to admin for order #${order._id}`);
+    return { success: true, message: 'New order notification sent successfully' };
+  } catch (err) {
+    console.error(`❌ New order email failed for #${order._id}:`, err.message);
+    return { success: false, error: err.message };
+  }
 };
 
 module.exports = { 
@@ -100,3 +128,4 @@ module.exports = {
   sendOrderConfirmationEmail,
   sendNewOrderEmail 
 };
+
