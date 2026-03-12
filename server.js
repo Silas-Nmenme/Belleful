@@ -3,16 +3,20 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const http = require('http');
-const { Server } = require('socket.io');
 const connectDB = require('./config/database.js');
 const path = require('path');
 
-// Connect to DB
-connectDB();
-
 const app = express();
-const PORT = process.env.PORT || 1500;
+const PORT = process.env.PORT || 1000;
+
+// ===== CORS Setup =====
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://bellefulchop.netlify.app";
+app.use(cors({
+  origin: FRONTEND_URL,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
 // Middleware
 app.use(helmet());
@@ -20,7 +24,16 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting\nconst limiter = rateLimit({\n  windowMs: 15 * 60 * 1000, // 15 mins\n  max: 100 // 100 req per window\n});\n\n// Serve static frontend files\napp.use(express.static('public'));\n\napp.use('/api/', limiter);
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 100 // 100 req per window
+});
+
+// Serve static frontend files
+// Frontend served separately (Vercel/CDN)
+
+app.use('/api/', limiter);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -29,49 +42,20 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 
-// Socket.io
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Belleful API');
 });
 
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-  
-  socket.on('join-user', (userId) => {
-    socket.join(`user_${userId}`);
+
+// Start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
   });
-  
-  socket.on('join-admin', () => {
-    socket.join('admin');
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
+}).catch((error) => {
+  console.error("MongoDB Connection Failed:", error.message);
+  process.exit(1);
 });
-
-// Store io in app
-app.set('io', io);
-
-// Health
-app.get('/api/health', (req, res) => res.status(200).json({ status: 'OK', message: 'Belleful Backend Running' }));
-
-// 404
-app.use('*', (req, res) => {
-  res.status(404).json({ success: true, message: 'Belleful Backend Running' });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Server Error' });
-});
-
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
