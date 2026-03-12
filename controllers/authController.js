@@ -36,7 +36,10 @@ exports.verifyOTP = async (req, res, next) => {
   }
   
   try {
-    const user = await User.findOne({ email }).select('+otp otpExpires');
+    const user = await User.findOne({ 
+      email, 
+      otpExpires: { $gt: new Date() }
+    }).select('+otp otpExpires');
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -45,12 +48,17 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Email already verified" });
     }
 
-    console.log('Stored OTP:', JSON.stringify({val: user.otp, type: typeof user.otp, len: user.otp?.length}), 
-      'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length}), 
-      'Strict Match:', user.otp === inputOTP, 
-      'Loose Match:', user.otp == inputOTP);
+    // Enhanced logging
+    console.log('REQ BODY:', JSON.stringify(req.body, null, 2));
+    const storedOTP = (user.otp || '').trim();
+    const inputCharCodes = Array.from(inputOTP).map(c => c.charCodeAt(0));
+    const storedCharCodes = Array.from(storedOTP).map(c => c.charCodeAt(0));
+    console.log('Stored OTP:', JSON.stringify({val: storedOTP, type: typeof storedOTP, len: storedOTP.length, charCodes: storedCharCodes}), 
+      'Input OTP:', JSON.stringify({val: inputOTP, type: typeof inputOTP, len: inputOTP.length, charCodes: inputCharCodes}), 
+      'Strict Match:', storedOTP === inputOTP, 
+      'Numeric Match:', parseInt(storedOTP) === parseInt(inputOTP));
 
-    if (!user.otp || user.otp !== inputOTP) {
+    if (!storedOTP || storedOTP !== inputOTP || parseInt(storedOTP) !== parseInt(inputOTP)) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
