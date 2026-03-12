@@ -2,8 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { sendOTPEmail, sendWelcomeEmail, sendTemplateEmail } = require('../services/emailService');
-const { OAuth2Client } = require('google-auth-library');
-const google = require('googleapis');
+const { OAuth2 } = require('google-auth-library');
 
 // Create JWT token & send response
 const sendTokenResponse = (user, statusCode, res) => {
@@ -294,11 +293,16 @@ exports.initiateGoogleAuth = async (req, res) => {
   console.log(`✅ Google OAuth config validated: clientId=${clientId.slice(0,20)}..., redirect=${redirectUri}`);
 
   try {
-    // Create OAuth2 client - use google-auth-library directly
-    const { OAuth2 } = require('google-auth-library');
-    const oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
+    console.log(`🔧 Creating OAuth2 client with redirect: ${redirectUri}`);
+    
+    // Modern v10+ constructor - object config required
+    const oauth2Client = new OAuth2({
+      clientId,
+      clientSecret,
+      redirectUri
+    });
 
-    // Generate the url that will be used for the consent dialog
+    // Generate auth URL
     const authorizeUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: [
@@ -308,6 +312,7 @@ exports.initiateGoogleAuth = async (req, res) => {
       include_granted_scopes: true,
       state: JSON.stringify({
         timestamp: Date.now(),
+        redirectUri // Extra state for security
       })
     });
 
@@ -319,15 +324,23 @@ exports.initiateGoogleAuth = async (req, res) => {
       config: {
         hasClientId: !!clientId,
         hasClientSecret: !!clientSecret,
-        redirectUri
+        redirectUri,
+        clientIdPreview: clientId ? `${clientId.slice(0,20)}...` : 'MISSING'
       }
     });
 
   } catch (error) {
-    console.error("❌ OAuth2 Error:", error.message);
+    console.error("❌ OAuth2 Error Details:", {
+      message: error.message,
+      code: error.code,
+      clientIdPreview: clientId ? `${clientId.slice(0,20)}...` : 'MISSING',
+      redirectUri,
+      stack: error.stack
+    });
     return res.status(500).json({ 
-      message: `OAuth generation failed: ${error.message}`,
-      hint: 'Verify credentials in Google Cloud Console match .env exactly (no extra spaces)'
+      message: 'Failed to generate OAuth URL',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Configuration error',
+      hint: '1. Check .env vars match Google Cloud Console exactly\n2. Verify redirect URI registered\n3. Restart server after .env changes'
     });
   }
 };
@@ -346,32 +359,31 @@ exports.handleGoogleCallback = async (req, res) => {
 
   try {
     
-    // Create OAuth2 client
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
-    );
+    // Modern OAuth2 client (consistent with initiate)
+    const oauth2Client = new OAuth2({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
+    });
 
-    // Exchange authorization code for access token
+    // Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Get user information
-    const oauth2 = google.oauth2({
-      auth: oauth2Client,
-      version: 'v2'
+    // Get user info using built-in method (no separate googleapis needed)
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
     });
 
-    const { data } = await oauth2.userinfo.get();
-    
+    const payload = ticket.getPayload();
     const {
-      id: googleId,
+      sub: googleId,
       email,
       name,
       picture: avatar,
-      verified_email: emailVerified
-    } = data;
+      email_verified: emailVerified
+    } = payload;
 
     if (!emailVerified) {
       return res.status(400).json({ message: "Google email not verified" });
