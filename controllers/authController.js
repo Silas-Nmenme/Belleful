@@ -30,26 +30,27 @@ const sendTokenResponse = (user, statusCode, res) => {
 exports.verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
   try {
-    const user = await User.findOne({ email, otp }).select('+otp otpExpires');
-    if (!user) {
+    const user = await User.findOne({ email }).select('+otp otpExpires');
+    if (!user || user.otp !== otp) {
       return res.status(404).json({ success: false, message: "Invalid OTP" });
     }
     
-    console.log('OTP check:', { storedOtp: user.otp, inputOtp: otp, otpMatch: user.otp === otp, expires: user.otpExpires, now: new Date(), isExpired: user.otpExpires < new Date() });
+    console.log('OTP match confirmed for:', user.email);
     if (user.otpExpires < new Date()) {
       return res.status(400).json({ success: false, message: 'OTP expired' });
     }
 
     user.isVerified = true;
-    user.otp = null; // Clear OTP after verification
+    user.otp = undefined;
     user.otpExpires = undefined;
-    await user.save();
+    const savedUser = await user.save({ validateBeforeSave: false });
+    console.log('Save result:', savedUser.isVerified);
 
-    console.log('User verification saved:', { 
-      id: user._id, 
-      email: user.email, 
-      isVerified: user.isVerified 
-    });
+    // Confirm in DB
+    const dbUser = await User.findById(savedUser._id).select('isVerified');
+    console.log('DB confirmation:', dbUser.isVerified);
+
+    // Old log moved to after save
 
     // Send welcome email
     await sendWelcomeEmail(user.email, user.name);
