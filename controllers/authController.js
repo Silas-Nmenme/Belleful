@@ -41,81 +41,102 @@ exports.generateOTP = () => {
 
 
 // =====================================
-// VERIFY OTP
+// VERIFY OTP - REWRITTEN FOR ROBUSTNESS
 // =====================================
 exports.verifyOTP = async (req, res) => {
   try {
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success:false, errors: errors.array() });
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { email, otp } = req.body;
 
+    // Normalize inputs strictly
     const normalizedEmail = email.toLowerCase().trim();
-    const inputOTP = String(otp).trim();
-
-    if (inputOTP.length !== 6) {
+    const inputOTP = String(otp).trim().padStart(6, '0');
+    
+    if (!/^\d{6}$/.test(inputOTP)) {
       return res.status(400).json({
-        success:false,
-        message:"OTP must be 6 digits"
+        success: false,
+        message: "OTP must be exactly 6 digits"
       });
     }
 
+    // Query user with required fields
     const user = await User.findOne({ email: normalizedEmail })
-      .select('+otp otpExpires');
+      .select('+otp +otpExpires +isVerified');
 
+    // 1. User must exist
     if (!user) {
       return res.status(404).json({
-        success:false,
-        message:"User not found"
+        success: false,
+        message: "No account found with this email"
       });
     }
 
+    console.log(`🔍 Verify attempt for ${user.email}: inputOTP=${inputOTP}, storedOTP=${user.otp}, isVerified=${user.isVerified}, expires=${user.otpExpires}`);
+
+    // 2. Must not be already verified
     if (user.isVerified) {
       return res.status(400).json({
-        success:false,
-        message:"Email already verified"
+        success: false,
+        message: "Email already verified"
       });
     }
 
-    if (!user.otp || user.otp !== inputOTP) {
+    // 3. OTP must be set
+    if (!user.otp) {
       return res.status(400).json({
-        success:false,
-        message:"Invalid OTP"
+        success: false,
+        message: "No verification code sent to this email. Please register again."
       });
     }
 
-    if (!user.otpExpires || user.otpExpires < new Date()) {
+    // 4. OTP must match (both strings)
+    if (user.otp !== inputOTP) {
+      console.log(`❌ OTP mismatch: stored='${user.otp}' vs input='${inputOTP}'`);
       return res.status(400).json({
-        success:false,
-        message:"OTP expired"
+        success: false, 
+        message: "Invalid verification code"
       });
     }
 
+    // 5. OTP must not be expired
+    const now = new Date();
+    if (!user.otpExpires || user.otpExpires < now) {
+      console.log(`❌ OTP expired: expires=${user.otpExpires}, now=${now}`);
+      return res.status(400).json({
+        success: false,
+        message: "Verification code expired. Please request a new one."
+      });
+    }
+
+    // Clear OTP and verify user atomically
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
+    await user.save({ validateBeforeSave: false });
 
-    await user.save({ validateBeforeSave:false });
+    console.log(`✅ User verified: ${user.email}`);
 
-    console.log(`User verified: ${user.email}`);
+    // Send welcome email (fire and forget)
+    sendWelcomeEmail(user.email, user.name).catch(err => 
+      console.error('Welcome email failed:', err.message)
+    );
 
-    sendWelcomeEmail(user.email, user.name).catch(console.error);
+    // Send JWT token
+    sendTokenResponse(user, 200, res);
 
-    sendTokenResponse(user,200,res);
-
-  } catch(error) {
-
+  } catch (error) {
     console.error("Verify OTP error:", error);
-
     res.status(500).json({
-      success:false,
-      message:"Server error during verification"
+      success: false,
+      message: "Server error during verification"
     });
   }
 };
+
 
 
 
