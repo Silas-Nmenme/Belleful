@@ -28,35 +28,27 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 exports.verifyOTP = async (req, res, next) => {
+  const { otp } = req.body;
   try {
-    const { email, otp } = req.body;
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
-    // Find user
-    const user = await User.findOne({ email }).select('+otp otpExpires');
-
+    const user = await User.findOne({ otp: otp }).select('+otp otpExpires');
     if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ success: false, message: "Invalid OTP" });
     }
-
+    
     console.log('OTP check:', { storedOtp: user.otp, inputOtp: otp, otpMatch: user.otp === otp, expires: user.otpExpires, now: new Date(), isExpired: user.otpExpires < new Date() });
-    if (user.otp !== otp || user.otpExpires < new Date()) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    if (user.otpExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'OTP expired' });
     }
 
-    // Verify success
-    user.isVerified = true;
-    user.otp = undefined;
+    user.otpVerified = true;
+    user.otp = null; // Clear OTP after verification
     user.otpExpires = undefined;
     await user.save();
 
     // Send welcome email
-    await sendWelcomeEmail(email, user.name);
+    await sendWelcomeEmail(user.email, user.name);
 
+    // OTP is valid, send token response
     sendTokenResponse(user, 200, res);
   } catch (error) {
     if (error.message.includes('Missing credentials') || error.message.includes('Invalid login')) {
@@ -68,7 +60,6 @@ exports.verifyOTP = async (req, res, next) => {
     console.error('Auth error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
-
 };
 
 // @desc    Register user
