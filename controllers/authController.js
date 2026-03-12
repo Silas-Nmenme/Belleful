@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { generateOTP } = require('../utils/emailTemplates');
 const { sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
+const { OAuth2Client } = require('google-auth-library');
 
 // Get token from model, create cookie & send response
 const sendTokenResponse = (user, statusCode, res) => {
@@ -142,6 +143,59 @@ exports.registerAdmin = async (req, res, next) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Google login/signup
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      // Check if user exists by email (for linking)
+      user = await User.findOne({ email });
+      if (user) {
+        // Link Google to existing user
+        user.googleId = googleId;
+        await user.save();
+      } else {
+        // Create new user
+        user = await User.create({
+          name: name || email.split('@')[0],
+          email,
+          googleId,
+          isVerified: true,
+        });
+      }
+    } else if (!user.isVerified) {
+      // Rare: Google user not verified? Verify now
+      user.isVerified = true;
+      await user.save();
+    }
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(401).json({ success: false, message: 'Invalid Google token' });
   }
 };
 

@@ -5,7 +5,8 @@ const {
   registerUser,
   registerAdmin,
   login,
-  verifyOTP
+  verifyOTP,
+  googleLogin
 } = require('../controllers/authController');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
@@ -29,6 +30,11 @@ router.post('/verify-otp', [
   body('email').isEmail().normalizeEmail(),
   body('otp').isLength({ min: 6, max: 6 }).isNumeric()
 ], verifyOTP);
+
+// Google login
+router.post('/google', [
+  body('idToken').notEmpty().trim()
+], googleLogin);
 
 // Login
 router.post('/login', [
