@@ -58,8 +58,16 @@ exports.verifyOTP = async (req, res, next) => {
 
     sendTokenResponse(user, 200, res);
   } catch (error) {
+    if (error.message.includes('Missing credentials') || error.message.includes('Invalid login')) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Email service temporarily unavailable. Please try again in a few minutes.' 
+      });
+    }
+    console.error('Auth error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
+
 };
 
 // @desc    Register user
