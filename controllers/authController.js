@@ -43,7 +43,7 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User not found' });
     }
 
-    if (user.otp !== otp || Date.now() > user.otpExpires) {
+    if (user.otp !== otp || user.otpExpires < new Date()) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
@@ -91,7 +91,7 @@ exports.registerUser = async (req, res, next) => {
 
     // Generate OTP
     const otp = generateOTP();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create user with OTP
     const user = await User.create({ 
@@ -131,7 +131,7 @@ exports.registerAdmin = async (req, res, next) => {
 
     // Generate OTP for admin too
     const otp = generateOTP();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const user = await User.create({ 
       name, 
