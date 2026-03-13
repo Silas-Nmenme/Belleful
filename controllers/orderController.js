@@ -25,8 +25,8 @@ exports.checkout = [auth, async (req, res) => {
       user: req.user.id,
       items: orderItems,
       totalAmount: cart.totalAmount,
-      accountNumber: process.env.BANK_ACCOUNT || '1234567890',
-      bankName: process.env.BANK_NAME || 'Wema Bank'
+      accountNumber: process.env.BANK_ACCOUNT || '8107586167',
+      bankName: process.env.BANK_NAME || 'Opay'
     });
 
     const createdOrder = await order.save();
