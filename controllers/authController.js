@@ -267,7 +267,7 @@ exports.initiateGoogleAuth = async (req, res) => {
   // Validate required env vars first
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI?.trim() || 'https://belleful-fphf.vercel.app/api/users/google/callback';
+  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URL)?.trim() || 'https://belleful-fphf.vercel.app/api/users/google/callback';
 
   if (!clientId) {
     console.error('❌ GOOGLE_CLIENT_ID missing from .env');
@@ -300,18 +300,14 @@ exports.initiateGoogleAuth = async (req, res) => {
     clientId: clientId ? `${clientId.slice(0,20)}...` : 'MISSING',
     clientSecret: clientSecret ? `${clientSecret.slice(0,10)}***` : 'MISSING',
     redirectUri,
-    typeofOAuth2: typeof OAuth2,
-    OAuth2Keys: OAuth2 ? Object.keys(OAuth2) : 'OAuth2 undefined'
+    typeofOAuth2Client: typeof OAuth2Client,
+    OAuth2ClientKeys: OAuth2Client ? Object.keys(OAuth2Client) : 'OAuth2Client undefined'
   });
     
 
     
-  // Fixed OAuth2Client constructor (v10+ object config)
-  const oauth2Client = new OAuth2Client({
-      clientId,
-      clientSecret,
-      redirectUri
-    });
+// Fixed: v10+ OAuth2Client uses positional args: new OAuth2Client(clientId, clientSecret, redirectUri)
+  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
 
     // Generate auth URL
     const authorizeUrl = oauth2Client.generateAuthUrl({
@@ -373,12 +369,12 @@ exports.handleGoogleCallback = async (req, res) => {
     // DEBUG: Same check for callback
     console.log('🔍 Callback OAuth2Client init');
     
-    // Fixed OAuth2Client (consistent with initiate)
-    const oauth2Client = new OAuth2Client({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/users/google/callback'
-    });
+    // Fixed: v10+ OAuth2Client positional args (consistent)
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URL || 'https://belleful-fphf.vercel.app/api/users/google/callback'
+    );
 
     // Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
