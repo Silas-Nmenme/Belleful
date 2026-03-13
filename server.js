@@ -11,7 +11,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 1000;
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://bellefulchop.netlify.app";
+const FRONTEND_URL = process.env.FRONTEND_URL || ["https://bellefulchop.netlify.app"];
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 
 // ===== Create HTTP Server =====
@@ -20,8 +20,8 @@ const server = http.createServer(app);
 // ===== Socket.IO Setup =====
 const io = new socketIo.Server(server, {
   cors: {
-    origin: [FRONTEND_URL, "http://localhost:1000"],
-    methods: ["GET", "POST"],
+    origin: ['https://bellefulchop.netlify.app'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true
   }
 });
@@ -63,6 +63,10 @@ app.set('io', io);
 
 // Middleware
 app.use(helmet());
+app.use(cors({
+  origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public'))); // Serve dashboards
