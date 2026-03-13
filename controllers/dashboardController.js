@@ -108,9 +108,11 @@ exports.getAdminOrders = [auth, isAdmin, async (req, res) => {
   }
 }];
 
-// ===== USER DASHBOARD =====
+// ===== USER DASHBOARD - FULL PROJECT MATCH =====
 
-// @desc Get user dashboard stats
+const Cart = require('../models/Cart');
+
+// @desc Get user dashboard stats (enhanced)
 exports.getUserStats = [auth, async (req, res) => {
   try {
     const stats = await Promise.all([
@@ -122,13 +124,16 @@ exports.getUserStats = [auth, async (req, res) => {
     ]);
 
     const [userOrders, completedOrders] = stats;
+    const cart = await Cart.findOne({ user: req.user.id }).populate('items.menuItem');
 
     res.json({
       success: true,
       data: {
         totalOrders: userOrders[0]?.total || 0,
         totalSpent: userOrders[0]?.spent || 0,
-        completedOrders
+        completedOrders,
+        cartItems: cart?.items.length || 0,
+        cartTotal: cart?.totalAmount || 0
       }
     });
   } catch (error) {
@@ -136,22 +141,73 @@ exports.getUserStats = [auth, async (req, res) => {
   }
 }];
 
-// @desc Get user recent orders
+// @desc Get paginated user orders
 exports.getUserOrders = [auth, async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id })
-      .populate('items.menuItem', 'name image')
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const status = req.query.status;
+    const skip = (page - 1) * limit;
+
+    let filter = { user: req.user.id };
+    if (status) filter.orderStatus = status;
+
+    const orders = await Order.find(filter)
+      .populate('items.menuItem', 'name image price')
       .sort('-createdAt')
-      .limit(10)
+      .skip(skip)
+      .limit(limit)
       .lean();
+
+    const total = await Order.countDocuments(filter);
 
     res.json({
       success: true,
       count: orders.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
       data: orders
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 }];
+
+// @desc Get user profile
+exports.getUserProfile = [auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}];
+
+// @desc Get user cart summary
+exports.getUserCart = [auth, async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ user: req.user.id })
+      .populate('items.menuItem', 'name image price')
+      .lean();
+    res.json({ success: true, data: cart || { items: [], totalAmount: 0 } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}];
+
+// @desc Get user payment history
+exports.getUserPayments = [auth, async (req, res) => {
+  try {
+    const payments = await Order.find({ user: req.user.id, paymentStatus: { $ne: 'pending' } })
+      .select('paymentReference paymentStatus totalAmount createdAt')
+      .sort('-createdAt')
+      .limit(20)
+      .lean();
+    res.json({ success: true, count: payments.length, data: payments });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}];
+
 
