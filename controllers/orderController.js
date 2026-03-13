@@ -1,7 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const { getPaymentDetails } = require('../services/paymentService');
-const { sendNewOrderEmail } = require('../services/emailService');
+const { sendNewOrderEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
 const { emitNewOrder, emitOrderUpdate } = require('../utils/socket.js');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
@@ -80,8 +80,9 @@ exports.updateOrderStatus = [auth, isAdmin, async (req, res) => {
 
     const updatedOrder = await order.save();
 
-    // Emit real-time update
+    // Emit real-time update + email user
     emitOrderUpdate(req, order._id, order.orderStatus, order.user.id);
+    sendOrderStatusUpdateEmail(updatedOrder, order.orderStatus).catch(console.error);
 
     res.json({ success: true, data: updatedOrder });
   } catch (error) {

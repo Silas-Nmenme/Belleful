@@ -103,6 +103,60 @@ const sendOrderConfirmationEmail = async (order) => {
   }
 };
 
+// Send order status update to customer
+const sendOrderStatusUpdateEmail = async (order, newStatus) => {
+  const userEmail = order.user.email;
+  const statusConfig = {
+    'pending_approval': { emoji: '⏳', color: '#FFA500' },
+    'vendor_approved': { emoji: '✅', color: '#28a745' },
+    'preparing': { emoji: '🔥', color: '#DC3545' },
+    'ready': { emoji: '🍽️', color: '#007BFF' },
+    'off_for_delivery': { emoji: '🚀', color: '#6F42C1' },
+    'delivered': { emoji: '🎉', color: '#28A745' }
+  };
+  const config = statusConfig[newStatus] || { emoji: '📦', color: '#6C757D' };
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Status Update - Belleful</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, ${config.color}22 0%, ${config.color}44 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .status-badge { background: ${config.color}; color: white; padding: 10px 20px; border-radius: 25px; font-size: 18px; font-weight: bold; display: inline-block; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .progress { text-align: center; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${config.emoji} Order Update #${order._id.slice(-6)}</h1>
+    <div class="status-badge">${newStatus.replace('_', ' ').toUpperCase()}</div>
+  </div>
+  <div class="content">
+    <p>Hi ${order.user.name},</p>
+    <p>Your order status has been updated to <strong>${newStatus.replace('_', ' ')}</strong>.</p>
+    <div class="progress">
+      <p>Order Total: ₦${order.totalAmount}</p>
+      <p>Track your order in the Belleful dashboard.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <p>© 2026 Belleful. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+
+  return sendTemplateEmail(
+    userEmail,
+    `Order #${order._id.slice(-6)} - ${newStatus.replace('_', ' ')}`,
+    html
+  );
+};
+
 // Send email to admin on new order
 const sendNewOrderEmail = async (order) => {
   const mailOptions = {
@@ -137,6 +191,7 @@ module.exports = {
   sendWelcomeEmail, 
   sendTemplateEmail,
   sendOrderConfirmationEmail,
-  sendNewOrderEmail 
+  sendNewOrderEmail,
+  sendOrderStatusUpdateEmail
 };
 
