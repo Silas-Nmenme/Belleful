@@ -81,6 +81,7 @@ app.use('/api/menu', require('./routes/menu'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Basic route - now serves dashboards
 app.get('/', (req, res) => {
