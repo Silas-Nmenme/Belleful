@@ -27,7 +27,6 @@ mongoose.connect(process.env.MONGO_URI)
       { name: 'Moi Moi + Pap', category: 'food', price: 1200, description: 'Steamed bean pudding with pap', available: true },
       { name: 'Pepper Soup', category: 'food', price: 1800, description: 'Spicy goat meat pepper soup', available: true },
       { name: 'Chapman Drink', category: 'drink', price: 800, description: 'Refreshing spicy ginger lemonade', available: true },
-      { Name: 'Star Beer', category: 'drink', price: 600, description: 'Cold Star lager beer', available: true },
       { name: 'Fresh Orange Juice', category: 'drink', price: 700, description: 'Pure squeezed orange juice', available: true },
       { name: 'Plantain Chips', category: 'side', price: 500, description: 'Crispy fried plantain chips', available: true },
       { name: 'Suya', category: 'side', price: 1500, description: 'Spicy grilled beef suya', available: true }
@@ -36,20 +35,29 @@ mongoose.connect(process.env.MONGO_URI)
     const menuItems = await MenuItem.insertMany(demoMenu);
     console.log(`✅ Added ${menuItems.length} demo menu items`);
 
-    // Create admin user if none exists
-    const adminCount = await User.countDocuments({ role: 'admin' });
-    if (adminCount === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 12);
-      await User.create({
-        name: 'Belleful Admin',
-        email: process.env.ADMIN_EMAIL || 'admin@belleful.com',
-        password: hashedPassword,
-        role: 'admin',
-        isVerified: true
-      });
-      console.log('👑 Created admin: admin@belleful.com / admin123');
-    } else {
-      console.log('👑 Admin already exists');
+    // Create admin user if none exists (idempotent)
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@belleful.com';
+      const existingAdmin = await User.findOne({ role: 'admin' });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('admin123', 12);
+        await User.create({
+          name: 'Belleful Admin',
+          email: adminEmail,
+          password: hashedPassword,
+          role: 'admin',
+          isVerified: true
+        });
+        console.log(`👑 Created admin: ${adminEmail} / admin123`);
+      } else {
+        console.log('👑 Admin already exists');
+      }
+    } catch (error) {
+      if (error.code === 11000) {
+        console.log('ℹ️ Admin email already exists (skipped)');
+      } else {
+        throw error;
+      }
     }
 
     console.log('🎉 Demo data seeded successfully!');
@@ -58,7 +66,7 @@ mongoose.connect(process.env.MONGO_URI)
     
     process.exit(0);
   })
-  .catch(err => {
-    console.error('❌ Seed error:', err);
+  .catch(async (err) => {
+    console.error('❌ Connection/uncatched error:', err.message);
     process.exit(1);
   });
