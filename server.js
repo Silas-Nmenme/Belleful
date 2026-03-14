@@ -11,7 +11,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 1000;
-const FRONTEND_URL = process.env.FRONTEND_URL || ["https://bellefulchop.netlify.app"];
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 
 // ===== Create HTTP Server =====
@@ -62,11 +62,13 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 // Middleware
-app.use(helmet());
 app.use(cors({
   origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public'))); // Serve dashboards
@@ -87,6 +89,14 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
+// Explicit preflight handler
+app.options('*', cors({
+  origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
 // Basic route - now serves dashboards
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html')) || res.send('Belleful Dashboards Ready');
@@ -95,8 +105,8 @@ app.get('/', (req, res) => {
 // Start server
 connectDB().then(() => {
   server.listen(PORT, () => {
-    console.log(`Server + Socket.IO running on http://localhost:${PORT}`);;
-    console.log(`Allowed origins: ${FRONTEND_URL}`);
+    console.log(`Server + Socket.IO running on http://localhost:${PORT}`);
+    console.log(`CORS Allowed origins: ${FRONTEND_URL}`);
   });
 }).catch((error) => {
   console.error("MongoDB Connection Failed:", error.message);
