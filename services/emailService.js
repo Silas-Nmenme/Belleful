@@ -194,4 +194,3 @@ module.exports = {
   sendNewOrderEmail,
   sendOrderStatusUpdateEmail
 };
-
