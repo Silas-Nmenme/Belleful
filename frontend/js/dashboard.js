@@ -1,6 +1,7 @@
-const API_BASE = window.API_BASE;\n\n// Dashboard functionality for User & Admin\nasync function loadUserStats() {
+// Dashboard functionality for User & Admin
+async function loadUserStats() {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/dashboard/user/stats`, {
+  const response = await fetch(`${window.API_BASE}/dashboard/user/stats`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   return response.ok ? await response.json() : { data: {} };
@@ -22,13 +23,13 @@ async function loadAdminStats(pageOrders = 1, limitOrders = 10, pageUsers = 1, l
   });
   
   const [statsRes, ordersRes, usersRes] = await Promise.all([
-    fetch(`${API_BASE}/dashboard/admin/stats`, {
+    fetch(`${window.API_BASE}/dashboard/admin/stats`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }),
-    fetch(`${API_BASE}/dashboard/admin/orders?${paramsOrders}`, {
+    fetch(`${window.API_BASE}/dashboard/admin/orders?${paramsOrders}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }),
-    fetch(`${API_BASE}/dashboard/admin/users?${paramsUsers}`, {
+    fetch(`${window.API_BASE}/dashboard/admin/users?${paramsUsers}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
   ]);
@@ -172,10 +173,6 @@ window.trackOrder = function(orderId) {
   window.location.href = `order-tracking.html?id=${orderId}`;
 };
 
-// Admin-specific functions
-// Removed old incomplete version - new one appended
-
-
 // Render admin orders table (Pending/Recent)
 function renderPendingOrders(orders, pendingCount = 0) {
   document.getElementById('pendingCount').textContent = pendingCount;
@@ -247,7 +244,7 @@ window.quickApproveOrder = async function(orderId) {
   
   const token = localStorage.getItem('token');
   try {
-    const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+    const res = await fetch(`${window.API_BASE}/orders/${orderId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -317,5 +314,4 @@ window.DashboardManager = {
   renderAdminUsers,
   loadAdminDashboard
 };
-
 
