@@ -12,7 +12,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 1000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
 
 // ===== Create HTTP Server =====
 const server = http.createServer(app);
@@ -99,16 +99,43 @@ app.options('*', cors({
 
 // Basic route - now serves dashboards
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html')) || res.send('Belleful Dashboards Ready');
+  res.sendFile(path.join(__dirname, 'public', 'index.html')) || res.send('Belleful API Ready');
 });
 
-// Start server
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`Server + Socket.IO running on http://localhost:${PORT}`);
-    console.log(`CORS Allowed origins: ${FRONTEND_URL}`);
+// Health check endpoint (Vercel uses this)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    db: typeof mongoose !== 'undefined' && mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
-}).catch((error) => {
-  console.error("MongoDB Connection Failed:", error.message);
+});
+
+// Validate critical env vars
+const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
+const missing = requiredEnv.filter(key => !process.env[key]);
+if (missing.length > 0) {
+  console.error('Missing required env vars:', missing.join(', '));
+  console.error('Add to Vercel dashboard: Project Settings > Environment Variables');
   process.exit(1);
+}
+
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit on dev, but log
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Start DB and server (server always starts)
+connectDB().catch(console.error); // Fire and forget
+
+server.listen(PORT, () => {
+  console.log(`Server + Socket.IO running on http://localhost:${PORT}`);
+  console.log(`CORS Allowed: ${FRONTEND_URL}`);
+  console.log('Health check: http://localhost:${PORT}/api/health');
 });
