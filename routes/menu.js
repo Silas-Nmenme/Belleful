@@ -9,13 +9,14 @@ const {
 } = require('../controllers/menuController');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
+const upload = require('../middleware/multerConfig');
 
 // GET /api/menu - public menu listing
 router.get('/', getMenuItems);
 router.get('/:id', getMenuItem);
 
 // Admin CRUD
-router.post('/', [auth, isAdmin], createMenuItem);
+router.post('/', upload.single('image'), auth, isAdmin, createMenuItem);
 router.put('/:id', [auth, isAdmin], updateMenuItem);
 router.delete('/:id', [auth, isAdmin], deleteMenuItem);
 
