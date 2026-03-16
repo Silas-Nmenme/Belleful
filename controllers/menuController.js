@@ -1,5 +1,5 @@
 const MenuItem = require('../models/MenuItem');
-const { deleteImage } = require('../config/cloudinary');
+const { deleteImage, uploadImage } = require('../config/cloudinary');
 
 
 /**
@@ -57,11 +57,21 @@ const isValidationError = (error) => error.name === 'ValidationError';
  */
 exports.createMenuItem = async (req, res) => {
   try {
-    const itemData = {
+    let itemData = {
       ...req.body,
-      stock: req.body.stock ?? 50, // Model defaults, but explicit
+      stock: req.body.stock ?? 50,
       available: (req.body.stock ?? 50) > 0
     };
+    
+    if (req.file) {
+      try {
+        const result = await uploadImage('menu');
+        itemData.image = result.secure_url;
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
+        return res.status(500).json({ success: false, message: 'Image upload failed' });
+      }
+    }
     
     const item = await MenuItem.create(itemData);
     
@@ -162,6 +172,7 @@ exports.deleteMenuItem = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error deleting menu item' });
   }
 };
+
 
 
 
