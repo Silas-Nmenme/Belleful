@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database.js');
 
 const app = express();
-const PORT = process.env.PORT || 1000;
+const PORT = process.env.PORT || 1400;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 
 
