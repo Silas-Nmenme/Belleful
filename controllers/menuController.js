@@ -1,5 +1,5 @@
 const MenuItem = require('../models/MenuItem');
-const { uploadImage, deleteImage } = require('../config/cloudinary');
+const { deleteImage } = require('../config/cloudinary');
 const { isAdmin } = require('../middleware/role');
 
 /**
@@ -47,15 +47,14 @@ exports.getMenuItem = async (req, res) => {
 // ===== CREATE ITEM (Admin) =====
 exports.createMenuItem = async (req, res) => {
   try {
-    let imageUrl = '';
-    if (req.file) {
-      const result = await uploadImage('menu', req.file);
-      imageUrl = result.secure_url;
+    const { imageUrl } = req.body;
+    if (imageUrl && !imageUrl.includes('cloudinary.com')) {
+      return res.status(400).json({ success: false, message: 'Invalid image URL' });
     }
 
     const item = await MenuItem.create({
       ...req.body,
-      image: imageUrl
+      image: imageUrl || ''
     });
 
     res.status(201).json({ success: true, data: item });
@@ -70,14 +69,15 @@ exports.updateMenuItem = async (req, res) => {
     const item = await MenuItem.findById(req.params.id);
     if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
 
-    // Update image if new
-    if (req.file) {
-      if (item.image) {
-        const publicId = item.image.split('/').pop().split('.')[0];
-        await deleteImage(publicId);
-      }
-      const result = await uploadImage('menu', req.file);
-      req.body.image = result.secure_url;
+    const { imageUrl } = req.body;
+    if (imageUrl && !imageUrl.includes('cloudinary.com')) {
+      return res.status(400).json({ success: false, message: 'Invalid image URL' });
+    }
+
+    // Delete old image if new URL provided
+    if (imageUrl && imageUrl !== item.image && item.image) {
+      const publicId = item.image.split('/').pop().split('.')[0];
+      await deleteImage(publicId);
     }
 
     Object.assign(item, req.body);

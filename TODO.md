@@ -1,8 +1,32 @@
-# Fix Mongoose Duplicate Index Warnings
-- [x] 1. Analyzed all model files (User.js, Order.js, Cart.js, MenuItem.js) ✅
-- [x] 2. Created edit plan and got user approval ✅
-- [x] 3. Edit models/User.js - remove userSchema.index({ googleId: 1 }); ✅\n- [x] 4. Edit models/Cart.js - remove cartSchema.index({ user: 1 }); ✅
-- [x] 5. Test: Restart server (`node server.js` or `npm start`), confirm no warnings ✅ (Original googleId/user warnings & email duplicate fixed; server runs clean)
-- [x] 6. (Optional) Inspect MongoDB indexes: mongosh "use belleful; db.users.getIndexes(); etc." ✅ (Skipped)
-- [x] 7. Update TODO.md as complete & attempt_completion ✅
+# Vercel Deployment Fix: Direct Cloudinary Uploads (No Multer)
 
+Status: Completed Backend Changes
+
+## Completed Steps
+- [x] Update `config/cloudinary.js`: Add `getUploadUrl()`
+- [x] Add upload-url routes in routes/menu.js and routes/payments.js 
+- [x] Delete `middleware/multerConfig.js`
+- [x] Update `routes/menu.js`: Remove `upload.single()`
+- [x] Update `controllers/menuController.js`: Use `req.body.imageUrl`
+- [x] Update `controllers/paymentController.js`: Use `req.body.receiptUrl`
+
+## Next Steps
+7. [ ] **Test locally**:
+   ```
+   npm install
+   npm start
+   ```
+   - Test `/api/menu/upload-url` GET → expect {url, fields}
+   - Test `/api/payments/receipt-upload-url` GET
+   - POST /api/menu (admin auth) with {..., \"imageUrl\": \"https://res.cloudinary.com/...\" }
+
+8. [ ] Create Cloudinary unsigned preset 'belleful-uploads'
+
+9. [ ] `vercel --prod` deploy
+
+10. [ ] Update frontend forms for direct upload
+
+## Production Ready
+✅ No disk writes, no Multer, no EROFS errors
+✅ Upload URLs ready for frontend
+✅ Controllers validate Cloudinary URLs + delete old images

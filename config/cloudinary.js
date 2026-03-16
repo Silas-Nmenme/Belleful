@@ -2,8 +2,7 @@ const cloudinary = require('cloudinary').v2;
 
 /**
  * Cloudinary Configuration & Upload Helper
- * Optimized for menu images & payment receipts
- * Auto-resize/crop for performance
+ * Direct frontend uploads + server delete
  */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -12,10 +11,34 @@ cloudinary.config({
 });
 
 /**
- * Upload single image with transformations
- * @param {string} folder - 'menu' | 'receipts' | default 'belleful'
- * @param {object} options - additional Cloudinary params
- * @returns {Promise} upload result
+ * Get direct upload URL + params for frontend
+ * Create unsigned preset 'belleful-uploads' in Cloudinary dashboard
+ * @param {string} folder - 'menu', 'receipts', default 'belleful'
+ * @param {object} options - additional params
+ * @returns {object} { url, params } for FormData
+ */
+const getUploadUrl = (folder = 'belleful', options = {}) => {
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinary.config().cloud_name}/image/upload`;
+  
+  const params = new URLSearchParams({
+    upload_preset: 'belleful-uploads', // Create this unsigned preset in dashboard
+    folder,
+    transformation: JSON.stringify([
+      { width: 800, height: 600, crop: 'limit', quality: 'auto' },
+      { fetch_format: 'auto' }
+    ]),
+    ...options
+  });
+
+  return {
+    url: `${uploadUrl}?${params.toString()}`,
+    method: 'POST',
+    fields: Object.fromEntries(params)
+  };
+};
+
+/**
+ * Server-side upload from stream/buffer (kept for legacy)
  */
 const uploadImage = (folder = 'belleful', options = {}) => {
   return new Promise((resolve, reject) => {
@@ -41,5 +64,4 @@ const uploadImage = (folder = 'belleful', options = {}) => {
  */
 const deleteImage = (public_id) => cloudinary.uploader.destroy(public_id);
 
-module.exports = { cloudinary, uploadImage, deleteImage };
-
+module.exports = { cloudinary, uploadImage, deleteImage, getUploadUrl };
