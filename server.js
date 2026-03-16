@@ -12,7 +12,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 1000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 
 // ===== Create HTTP Server =====
 const server = http.createServer(app);
@@ -71,7 +71,7 @@ app.use(cors({
 app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public'))); // Serve dashboards
+
 
 // Rate limiting
 const limiter = rateLimit({
@@ -97,29 +97,12 @@ app.options('*', cors({
   credentials: true
 }));
 
-// Basic route - now serves dashboards
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html')) || res.send('Belleful API Ready');
-});
+// API root
+app.get('/', (req, res) => res.json({ message: 'Belleful Chop API' }));
 
-// Health check endpoint (Vercel uses this)
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    db: typeof mongoose !== 'undefined' && mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
-});
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
 
-// Validate critical env vars
-const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
-const missing = requiredEnv.filter(key => !process.env[key]);
-if (missing.length > 0) {
-  console.error('Missing required env vars:', missing.join(', '));
-  console.error('Add to Vercel dashboard: Project Settings > Environment Variables');
-  console.warn('🚨 Server starting with missing env vars - limited functionality');
-
-}
 
 // Global error handlers
 process.on('unhandledRejection', (reason, promise) => {
@@ -136,7 +119,5 @@ process.on('uncaughtException', (error) => {
 connectDB().catch(console.error); // Fire and forget
 
 server.listen(PORT, () => {
-  console.log(`Server + Socket.IO running on http://localhost:${PORT}`);
-  console.log(`CORS Allowed: ${FRONTEND_URL}`);
-  console.log('Health check: http://localhost:${PORT}/api/health');
+console.log(`Belleful API running on port ${PORT}`);
 });
