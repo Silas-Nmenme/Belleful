@@ -45,7 +45,7 @@ exports.getAdminStats = async (req, res) => {
           activeUsers: { $addToSet: '$user' }
         }
       },
-      { $addFields: { activeUsers: { $size: '$activeUsers' } } }
+      { $addFields: { totalUsers: { $size: '$activeUsers' } } }
     ]);
 
     // Today's orders
@@ -54,10 +54,17 @@ exports.getAdminStats = async (req, res) => {
       orderStatus: { $ne: 'cancelled' }
     });
 
+    const totalUsers = await User.countDocuments({});
+    const activeMenuItems = await MenuItem.countDocuments({available: true});
+
     res.json({ 
       success: true,
-      stats: stats[0] || {},
-      todayOrders
+      stats: {
+        ...(stats[0] || {}),
+        totalUsers,
+        activeMenuItems,
+        todayOrders
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
