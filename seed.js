@@ -64,9 +64,9 @@ mongoose.connect(process.env.MONGO_URI)
     console.log('🌐 Test dashboards: http://localhost:1000/user-dashboard.html');
     console.log('👑 Admin: http://localhost:1000/admin-dashboard.html');
     
-    process.exit(0);
+    // process.exit(0);
   })
   .catch(async (err) => {
     console.error('❌ Connection/uncatched error:', err.message);
-    process.exit(1);
+    // process.exit(1);
   });

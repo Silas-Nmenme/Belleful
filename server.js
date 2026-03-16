@@ -117,7 +117,8 @@ const missing = requiredEnv.filter(key => !process.env[key]);
 if (missing.length > 0) {
   console.error('Missing required env vars:', missing.join(', '));
   console.error('Add to Vercel dashboard: Project Settings > Environment Variables');
-  process.exit(1);
+  console.warn('🚨 Server starting with missing env vars - limited functionality');
+
 }
 
 // Global error handlers
@@ -127,8 +128,8 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
+  console.error('Uncaught Exception - continuing in serverless mode:', error);
+  // Don't exit - serverless compatibility
 });
 
 // Start DB and server (server always starts)
