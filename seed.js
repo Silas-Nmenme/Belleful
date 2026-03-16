@@ -1,72 +1,173 @@
-#!/usr/bin/env node
-/**
- * Belleful Demo Data Seeder
- * Run: node seed.js
- * Creates: 10 menu items, 1 admin user (if none exists)
- */
+const demoMenu = [
 
-const mongoose = require('mongoose');
-require('dotenv').config();
-const MenuItem = require('./models/MenuItem');
-const User = require('./models/User');
-const bcrypt = require('bcryptjs');
+  // FOOD
+  {
+    name: 'Jollof Rice with Grilled Chicken',
+    category: 'food',
+    price: 3800,
+    description: 'Smoky Nigerian party jollof rice served with grilled chicken and salad',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Fried Rice with Turkey',
+    category: 'food',
+    price: 4200,
+    description: 'Vegetable fried rice served with spicy turkey',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'White Rice with Ofada Sauce & Assorted Meat',
+    category: 'food',
+    price: 3500,
+    description: 'Steamed rice with rich Ofada pepper sauce and assorted meat',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Pounded Yam with Egusi Soup',
+    category: 'food',
+    price: 4500,
+    description: 'Smooth pounded yam served with thick melon egusi soup',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Amala with Gbegiri & Ewedu',
+    category: 'food',
+    price: 3800,
+    description: 'Traditional Yoruba amala served with gbegiri and ewedu soup',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Eba with Ogbono Soup',
+    category: 'food',
+    price: 3500,
+    description: 'Garri eba served with rich ogbono soup and assorted meat',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Beans and Plantain (Ewa Agoyin)',
+    category: 'food',
+    price: 2200,
+    description: 'Soft beans served with spicy agoyin sauce and fried plantain',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Moi Moi with Pap',
+    category: 'food',
+    price: 2000,
+    description: 'Steamed bean pudding served with hot pap',
+    available: true,
+    stock: 40
+  },
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log('Connected to MongoDB');
-    
-    // Clear existing menu
-    await MenuItem.deleteMany({});
-    console.log('🧹 Cleared existing menu');
-    
-    // Create demo menu items
-    const demoMenu = [
-      { name: 'Jollof Rice + Chicken', category: 'food', price: 2500, description: 'Spicy Nigerian jollof with grilled chicken', available: true },
-      { name: 'Pounded Yam + Egusi Soup', category: 'food', price: 3000, description: 'Smooth pounded yam with rich egusi', available: true },
-      { name: 'Fried Rice + Beef', category: 'food', price: 2200, description: 'Vegetable fried rice with succulent beef', available: true },
-      { name: 'Moi Moi + Pap', category: 'food', price: 1200, description: 'Steamed bean pudding with pap', available: true },
-      { name: 'Pepper Soup', category: 'food', price: 1800, description: 'Spicy goat meat pepper soup', available: true },
-      { name: 'Chapman Drink', category: 'drink', price: 800, description: 'Refreshing spicy ginger lemonade', available: true },
-      { name: 'Fresh Orange Juice', category: 'drink', price: 700, description: 'Pure squeezed orange juice', available: true },
-      { name: 'Plantain Chips', category: 'side', price: 500, description: 'Crispy fried plantain chips', available: true },
-      { name: 'Suya', category: 'side', price: 1500, description: 'Spicy grilled beef suya', available: true }
-    ];
+  // DRINKS
+  {
+    name: 'Chapman',
+    category: 'drink',
+    price: 1500,
+    description: 'Refreshing Nigerian cocktail drink',
+    available: true,
+    stock: 60
+  },
+  {
+    name: 'Zobo Drink',
+    category: 'drink',
+    price: 1000,
+    description: 'Cold hibiscus drink with pineapple and ginger',
+    available: true,
+    stock: 60
+  },
+  {
+    name: 'Fresh Orange Juice',
+    category: 'drink',
+    price: 1500,
+    description: 'Freshly squeezed orange juice',
+    available: true,
+    stock: 60
+  },
+  {
+    name: 'Soft Drink (Coke/Fanta/Sprite)',
+    category: 'drink',
+    price: 700,
+    description: 'Chilled soft drink',
+    available: true,
+    stock: 80
+  },
 
-    const menuItems = await MenuItem.insertMany(demoMenu);
-    console.log(`Added ${menuItems.length} demo menu items`);
+  // SIDES
+  {
+    name: 'Suya',
+    category: 'side',
+    price: 2500,
+    description: 'Spicy grilled beef suya with onions and pepper',
+    available: true,
+    stock: 30
+  },
+  {
+    name: 'Fried Plantain',
+    category: 'side',
+    price: 1000,
+    description: 'Sweet golden fried plantain',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Coleslaw',
+    category: 'side',
+    price: 900,
+    description: 'Fresh cabbage and carrot salad',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Plantain Chips',
+    category: 'side',
+    price: 700,
+    description: 'Crunchy fried plantain chips',
+    available: true,
+    stock: 50
+  },
 
-    // Create admin user if none exists (idempotent)
-    try {
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@belleful.com';
-      const existingAdmin = await User.findOne({ role: 'admin' });
-      if (!existingAdmin) {
-        const hashedPassword = await bcrypt.hash('admin123', 12);
-        await User.create({
-          name: 'Belleful Admin',
-          email: adminEmail,
-          password: hashedPassword,
-          role: 'admin',
-          isVerified: true
-        });
-        console.log(`👑 Created admin: ${adminEmail} / admin123`);
-      } else {
-        console.log('👑 Admin already exists');
-      }
-    } catch (error) {
-      if (error.code === 11000) {
-        console.log('ℹ️ Admin email already exists (skipped)');
-      } else {
-        throw error;
-      }
-    }
+  // DESSERT
+  {
+    name: 'Puff Puff',
+    category: 'dessert',
+    price: 900,
+    description: 'Sweet deep fried Nigerian dough balls',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Chin Chin',
+    category: 'dessert',
+    price: 800,
+    description: 'Crunchy sweet fried pastry snack',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Ice Cream',
+    category: 'dessert',
+    price: 1500,
+    description: 'Creamy vanilla ice cream scoop',
+    available: true,
+    stock: 40
+  },
+  {
+    name: 'Fruit Salad',
+    category: 'dessert',
+    price: 1800,
+    description: 'Mixed fruit salad with cream',
+    available: true,
+    stock: 40
+  }
 
-    console.log('🎉 Demo data seeded successfully!');
-    console.log('🌐 Test dashboards: http://localhost:1000/user-dashboard.html');
-    console.log('👑 Admin: http://localhost:1000/admin-dashboard.html');
-    
-    // process.exit(0);
-  })
-  .catch(async (err) => {
-    console.error('❌ Connection/uncatched error:', err.message);
-    // process.exit(1);
-  });
+];
+
+module.exports = demoMenu;
