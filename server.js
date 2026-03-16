@@ -4,6 +4,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database.js');
+const morgan = require("morgan");
+const path = require("path");
+const dotenv = require("dotenv");
 
 const app = express();
 const PORT = process.env.PORT || 1400;
@@ -12,6 +15,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.a
 
 // ===== 2. SECURITY & PARSERS =====
 app.use(helmet()); // Security headers
+
+// ===== Middleware =====
+app.use(express.json());   // JSON body parser
+app.use(morgan("dev"));
 
 // CORS - allows frontend requests
 app.use(cors({
@@ -25,7 +32,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-
+// ===== Serve static files (for local testing only) =====
+app.use(express.static(path.join(__dirname, "public")));
 
 // ===== RATE LIMITING =====
 const limiter = rateLimit({
@@ -36,6 +44,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // ===== API ROUTES ===== (Auth protected where needed)
+app.get("/", (req, res) => res.send("Welcome To Belleful API"));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/cart', require('./routes/cart'));
