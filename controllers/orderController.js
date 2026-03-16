@@ -2,7 +2,7 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const { getPaymentDetails } = require('../services/paymentService');
 const { sendNewOrderEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
-const { emitNewOrder, emitOrderUpdate } = require('../utils/socket.js');
+
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
 
@@ -34,9 +34,7 @@ exports.checkout = [auth, async (req, res) => {
     // Clear cart
     await Cart.findOneAndDelete({ user: req.user.id });
 
-    // Notify admin
-    emitNewOrder(req, createdOrder);
-    await sendNewOrderEmail(createdOrder);
+    await sendNewOrderEmail(createdOrder); // Email notification to admin (socket removed)
 
     const paymentDetails = getPaymentDetails(createdOrder);
 
@@ -80,8 +78,7 @@ exports.updateOrderStatus = [auth, isAdmin, async (req, res) => {
 
     const updatedOrder = await order.save();
 
-    // Emit real-time update + email user
-    emitOrderUpdate(req, order._id, order.orderStatus, order.user.id);
+    // Email notification to user (real-time socket removed)
     sendOrderStatusUpdateEmail(updatedOrder, order.orderStatus).catch(console.error);
 
     res.json({ success: true, data: updatedOrder });

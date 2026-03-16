@@ -2,7 +2,7 @@ const multer = require('multer');
 const { cloudinary, uploadImage } = require('../config/cloudinary');
 const Order = require('../models/Order');
 const { verifyPaymentMock } = require('../services/paymentService');
-const { emitOrderUpdate } = require('../utils/socket.js');
+
 const auth = require('../middleware/auth');
 const path = require('path');
 
