@@ -57,15 +57,20 @@ exports.getAdminStats = async (req, res) => {
     const totalUsers = await User.countDocuments({});
     const activeMenuItems = await MenuItem.countDocuments({available: true});
 
+    const finalStats = {
+      totalRevenue: stats[0]?.totalRevenue || 0,
+      totalOrders: stats[0]?.totalOrders || 0,
+      totalUsers,
+      activeMenuItems,
+      todayOrders,
+      activeUsers: stats[0]?.activeUsers?.length || 0
+    };
+
     res.json({ 
       success: true,
-      stats: {
-        ...(stats[0] || {}),
-        totalUsers,
-        activeMenuItems,
-        todayOrders
-      }
+      data: finalStats  // ← FIX: Consistent .data format
     });
+  
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

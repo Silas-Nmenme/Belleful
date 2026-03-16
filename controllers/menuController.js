@@ -69,8 +69,10 @@ exports.createMenuItem = async (req, res) => {
         itemData.image = result.secure_url;
       } catch (uploadError) {
         console.error('Image upload error:', uploadError);
-        return res.status(500).json({ success: false, message: 'Image upload failed' });
+        itemData.image = '/asset/placeholder-food.jpg'; // Use placeholder
       }
+    } else {
+      itemData.image = '/asset/placeholder-food.jpg'; // Default no image
     }
     
     const item = await MenuItem.create(itemData);
