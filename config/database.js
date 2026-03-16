@@ -15,10 +15,10 @@ const connectDB = async (retries = 3) => {
       socketTimeoutMS: 45000,
     });
 
-    console.log(`✅ MongoDB connected to: ${conn.connection.host}`);
+    console.log(`MongoDB connected to: ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error('❌ MongoDB Error:', error.message);
+    console.error('MongoDB Error:', error.message);
     
     if (retries > 0) {
       console.log(`🔄 Retrying DB connection... (${retries} left)`);
@@ -26,7 +26,7 @@ const connectDB = async (retries = 3) => {
       return connectDB(retries - 1);
     }
     
-    console.error('💥 DB connection failed permanently');
+    console.error('DB connection failed permanently');
     return null; // Continue without DB for serverless
   }
 };

@@ -14,7 +14,7 @@ const initTransporter = () => {
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length) {
-    console.warn('⚠️ Email service disabled - missing ENV:', missing);
+    console.warn('Email service disabled - missing ENV:', missing);
     return null;
   }
 
@@ -34,7 +34,7 @@ const initTransporter = () => {
   // Verify on init
   transporter.verify(err => {
     if (err) console.error('Email transporter failed:', err.message);
-    else console.log('✅ Email service ready');
+    else console.log('Email service ready');
   });
 
   return transporter;

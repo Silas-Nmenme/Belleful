@@ -19,7 +19,7 @@ const app = express();
 const requiredEnv = ['MONGO_URI', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 const missing = requiredEnv.filter(key => !process.env[key]);
 if (missing.length) {
-  console.error('❌ Missing ENV:', missing.join(', '));
+  console.error('Missing ENV:', missing.join(', '));
   process.exit(1);
 }
 
@@ -75,7 +75,7 @@ app.get('/health', (req, res) => {
 });
 
 // Root
-app.get('/', (req, res) => res.json({ message: 'Belleful API v2.0 - Food Ordering Backend' }));
+app.get('/', (req, res) => res.json({ message: 'Belleful API Running - Food Ordering Backend' }));
 
 // ===== 4. API ROUTES =====
 app.use('/api/auth', require('./routes/auth'));
@@ -113,8 +113,8 @@ const startServer = async () => {
   try {
     await connectDB();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 Frontend: ${FRONTEND_URL}`);
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Frontend: ${FRONTEND_URL}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);
