@@ -24,7 +24,7 @@ if (missingVars.length > 0) {
 }
 console.log('✅ All required ENV vars present');
 
-const PORT = process.env.PORT || 2500;
+const PORT = process.env.PORT || 3500;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 
 
