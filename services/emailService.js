@@ -3,15 +3,15 @@ const { emailTemplates } = require('../utils/emailTemplates');
 
 // Validate email config on module load
 if (!process.env.MAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_HOST) {
-  console.error('🚨 Email config failed: Missing vars in .env');
+  console.error('Email config failed: Missing vars in .env');
   console.error('Required: MAIL_USER, EMAIL_PASS, EMAIL_HOST');
   console.error('Current:', {
     MAIL_USER: process.env.MAIL_USER ? `${process.env.MAIL_USER.split('@')[0]}@...` : 'MISSING',
-    EMAIL_PASS: process.env.EMAIL_PASS ? '✅ SET' : 'MISSING',
+    EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'MISSING',
     EMAIL_HOST: process.env.EMAIL_HOST || 'MISSING'
   });
 } else {
-  console.log('📧 Email config loaded successfully');
+  console.log('Email config loaded successfully');
 }
 
 // Create transporter
@@ -28,9 +28,9 @@ const transporter = nodemailer.createTransport({
 // Validate email config on startup
 transporter.verify((error, success) => {
   if (error) {
-    console.error('🚨 Email config failed:', error.message);
+    console.error('Email config failed:', error.message);
   } else {
-    console.log('✅ Email server ready');
+    console.log('Email server ready');
   }
 });
 
@@ -45,10 +45,10 @@ const sendOTPEmail = async (email, name, otp) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP Email sent to: ${email}`);
+    console.log(`OTP Email sent to: ${email}`);
     return { success: true, message: 'OTP email sent successfully' };
   } catch (err) {
-    console.error(`❌ OTP Email failed to ${email}:`, err.message);
+    console.error(`OTP Email failed to ${email}:`, err.message);
     return { success: false, error: err.message };
   }
 };
@@ -65,10 +65,10 @@ const sendTemplateEmail = async (email, subject, html, text = '') => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Template email sent to: ${email}`);
+    console.log(`Template email sent to: ${email}`);
     return { success: true };
   } catch (err) {
-    console.error(`❌ Template email failed to ${email}:`, err.message);
+    console.error(`Template email failed to ${email}:`, err.message);
     return { success: false, error: err.message };
   }
 };
@@ -95,10 +95,10 @@ const sendOrderConfirmationEmail = async (order) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Order confirmation sent to: ${userEmail}`);
+    console.log(`Order confirmation sent to: ${userEmail}`);
     return { success: true, message: 'Order confirmation sent successfully' };
   } catch (err) {
-    console.error(`❌ Order confirmation failed to ${userEmail}:`, err.message);
+    console.error(`Order confirmation failed to ${userEmail}:`, err.message);
     return { success: false, error: err.message };
   }
 };
@@ -178,10 +178,10 @@ const sendNewOrderEmail = async (order) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ New order email sent to admin for order #${order._id}`);
+    console.log(`New order email sent to admin for order #${order._id}`);
     return { success: true, message: 'New order notification sent successfully' };
   } catch (err) {
-    console.error(`❌ New order email failed for #${order._id}:`, err.message);
+    console.error(`New order email failed for #${order._id}:`, err.message);
     return { success: false, error: err.message };
   }
 };
