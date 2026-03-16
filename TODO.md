@@ -1,13 +1,6 @@
-# Fix Vercel Deployment Warnings
+# Vercel Runtime Fix - TODO Steps
 
-## Steps
-- [x] 1. Update vercel.json to v2+ format (remove builds warning)
-- [x] 2. Update package.json (bcryptjs + overrides for deprecations)
-- [ ] 3. Run `npm install` to update package-lock.json
-- [ ] 4. Test locally: `npm run dev`
-- [ ] 5. Redeploy to Vercel and verify clean logs
-
-**Current step: 1-2 (file edits)**
-
-Progress: 0/5 ✅
-
+- [x] Step 1: Update vercel.json runtime to nodejs20.x
+- [ ] Step 2: Commit and push changes to GitHub
+- [ ] Step 3: Verify Vercel deployment succeeds
+- [ ] Step 4: Check build logs on Vercel dashboard
