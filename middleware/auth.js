@@ -1,28 +1,37 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+/**
+ * JWT Authentication Middleware
+ * Attaches req.user with populated data
+ */
 const auth = async (req, res, next) => {
-  let token;
+  try {
+    let token = req.header('Authorization')?.replace('Bearer ', '');
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
-
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Get user from token
-      req.user = await User.findById(decoded.id).select('-password');
-
-      next();
-    } catch (error) {
-      res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No token provided.'
+      });
     }
-  }
 
-  if (!token) {
-    res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select('-password');
+    
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token. Please login again.'
+    });
   }
 };
 

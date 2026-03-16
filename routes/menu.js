@@ -1,24 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getMenuItems,
-  getMenuItem,
-  createMenuItem,
-  updateMenuItem,
-  deleteMenuItem
-} = require('../controllers/menuController');
+const menuController = require('../controllers/menuController');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
-const upload = require('../middleware/multerConfig');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
-// GET /api/menu - public menu listing
-router.get('/', getMenuItems);
-router.get('/:id', getMenuItem);
+/**
+ * Menu Routes - Public browse, Admin CRUD
+ */
 
-// Admin CRUD
-router.post('/', upload.single('image'), auth, isAdmin, createMenuItem);
-router.put('/:id', [auth, isAdmin], updateMenuItem);
-router.delete('/:id', [auth, isAdmin], deleteMenuItem);
+// Public
+router.get('/', menuController.getMenu);
+router.get('/:id', menuController.getMenuItem);
+
+// Admin protected
+router.use(auth);
+router.use(isAdmin);
+
+router.post('/', upload.single('image'), menuController.createMenuItem);
+router.put('/:id', upload.single('image'), menuController.updateMenuItem);
+router.delete('/:id', menuController.deleteMenuItem);
 
 module.exports = router;
 

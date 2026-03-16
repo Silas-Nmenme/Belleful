@@ -3,63 +3,81 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const connectDB = require('./config/database.js');
-const morgan = require("morgan");
-const path = require("path");
-const dotenv = require("dotenv");
+const morgan = require('morgan');
+const connectDB = require('./config/database');
+const path = require('path');
 
+/**
+ * Belleful Food Ordering Backend - Production-Ready Server
+ * Features: Auth (OTP/Google), Menu/Cart/Orders/Payments, Admin Dashboard
+ * Deployment: Vercel-optimized, MongoDB Atlas
+ */
 
 const app = express();
 
-// ===== ENV VALIDATION =====
-const requiredEnvVars = [
-  'MONGO_URI', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME', 
-  'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'
-];
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-  console.error('❌ Missing required ENV vars:', missingVars.join(', '));
-  console.error('Add to Vercel dashboard: Project Settings > Environment Variables');
+// ===== ENVIRONMENT VALIDATION =====
+const requiredEnv = ['MONGO_URI', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const missing = requiredEnv.filter(key => !process.env[key]);
+if (missing.length) {
+  console.error('❌ Missing ENV:', missing.join(', '));
   process.exit(1);
 }
-console.log('✅ All required ENV vars present');
 
+// ===== CONSTANTS =====
 const PORT = process.env.PORT || 3500;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 
-
-// ===== 2. SECURITY & PARSERS =====
-app.use(helmet()); // Security headers
-
-// ===== Middleware =====
-app.use(express.json());   // JSON body parser
-app.use(morgan("dev"));
-
-// CORS - allows frontend requests
-app.use(cors({
-  origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+// ===== 1. SECURITY MIDDLEWARE =====
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      'default-src': ["'self'"],
+      'img-src': ["'self'", 'data:', 'https://res.cloudinary.com'],
+      'script-src': ["'self'"],
+    },
+  },
 }));
 
-// Body parsers (increased limit for images)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// CORS for frontend
+app.use(cors({
+  origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-// ===== Serve static files (for local testing only) =====
-app.use(express.static(path.join(__dirname, "public")));
-
-// ===== RATE LIMITING =====
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests, please try again later.'
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 100, // 100 req/IP
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
-// ===== API ROUTES ===== (Auth protected where needed)
-app.get("/", (req, res) => res.send("Welcome To Belleful API"));
+// ===== 2. BODY PARSING (Large files for images) =====
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(morgan('combined'));
+
+// Static files (dev only)
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, 'public')));
+}
+
+// ===== 3. HEALTH CHECK =====
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV 
+  });
+});
+
+// Root
+app.get('/', (req, res) => res.json({ message: 'Belleful API v2.0 - Food Ordering Backend' }));
+
+// ===== 4. API ROUTES =====
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/cart', require('./routes/cart'));
@@ -67,37 +85,42 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
-// ===== GLOBAL ERROR HANDLER (AFTER ROUTES) =====
+// ===== 5. 404 HANDLER =====
+app.use('*', (req, res) => {
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
+});
+
+// ===== 6. GLOBAL ERROR HANDLER =====
 app.use((err, req, res, next) => {
-  console.error('🚨 Global Error:', err.stack || err.message);
-  res.status(err.statusCode || 500).json({
+  const status = err.status || 500;
+  const message = err.message || 'Server Error';
+  
+  res.status(status).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
+// ===== 7. GRACEFUL SHUTDOWN =====
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
 
 // ===== START SERVER =====
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit in serverless
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📱 Frontend: ${FRONTEND_URL}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
 
-// Handle unhandled exceptions
-process.on('uncaughtException', (error) => {
-  console.error('🚨 Uncaught Exception:', error);
-  process.exit(1);
-});
+startServer();
 
-connectDB().then(() => {
-
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
-  });
-}).catch((error) => {
-  console.error('MongoDB Connection Failed:', error.message);
-  process.exit(1);
-});

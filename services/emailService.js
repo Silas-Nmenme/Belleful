@@ -1,196 +1,160 @@
 const nodemailer = require('nodemailer');
-const { emailTemplates } = require('../utils/emailTemplates');
 
-// Validate email config on module load
-if (!process.env.MAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_HOST) {
-  console.error('Email config failed: Missing vars in .env');
-  console.error('Required: MAIL_USER, EMAIL_PASS, EMAIL_HOST');
-  console.error('Current:', {
-    MAIL_USER: process.env.MAIL_USER ? `${process.env.MAIL_USER.split('@')[0]}@...` : 'MISSING',
-    EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'MISSING',
-    EMAIL_HOST: process.env.EMAIL_HOST || 'MISSING'
+/**
+ * Email Service - Production OTP, Orders, Notifications
+ * Inline templates, config validation, async error handling
+ */
+let transporter;
+
+/**
+ * Initialize transporter with validation
+ */
+const initTransporter = () => {
+  const required = ['EMAIL_HOST', 'EMAIL_PORT', 'MAIL_USER', 'EMAIL_PASS'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length) {
+    console.warn('⚠️ Email service disabled - missing ENV:', missing);
+    return null;
+  }
+
+  transporter = nodemailer.createTransporter({
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT),
+    secure: process.env.EMAIL_PORT == 465,
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100
   });
-} else {
-  console.log('Email config loaded successfully');
-}
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false, // true for 465
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+  // Verify on init
+  transporter.verify(err => {
+    if (err) console.error('Email transporter failed:', err.message);
+    else console.log('✅ Email service ready');
+  });
 
-// Validate email config on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('Email config failed:', error.message);
-  } else {
-    console.log('Email server ready');
-  }
-});
+  return transporter;
+};
 
-// Send OTP verification email
+// Init on load
+initTransporter();
+
+/**
+ * Send OTP Email
+ */
 const sendOTPEmail = async (email, name, otp) => {
-  const mailOptions = {
-    from: process.env.MAIL_USER,
-    to: email,
-    subject: 'Your Belleful Verification Code',
-    html: emailTemplates.otpVerification(name, otp)
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`OTP Email sent to: ${email}`);
-    return { success: true, message: 'OTP email sent successfully' };
-  } catch (err) {
-    console.error(`OTP Email failed to ${email}:`, err.message);
-    return { success: false, error: err.message };
-  }
-};
-
-// Send template email (generic)
-const sendTemplateEmail = async (email, subject, html, text = '') => {
-  const mailOptions = {
-    from: process.env.MAIL_USER,
-    to: email,
-    subject,
-    html,
-    text
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Template email sent to: ${email}`);
-    return { success: true };
-  } catch (err) {
-    console.error(`Template email failed to ${email}:`, err.message);
-    return { success: false, error: err.message };
-  }
-};
-
-// Send welcome email
-const sendWelcomeEmail = async (email, name) => {
-  return sendTemplateEmail(
-    email,
-    'Welcome to Belleful!',
-    emailTemplates.welcome(name)
-  );
-};
-
-// Send order confirmation to customer
-const sendOrderConfirmationEmail = async (order) => {
-  // Assuming order has populated user field
-  const userEmail = order.user.email;
-  const mailOptions = {
-    from: process.env.MAIL_USER,
-    to: userEmail,
-    subject: `Order #${order._id} Confirmed - Belleful`,
-    html: emailTemplates.orderConfirmation(order)
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Order confirmation sent to: ${userEmail}`);
-    return { success: true, message: 'Order confirmation sent successfully' };
-  } catch (err) {
-    console.error(`Order confirmation failed to ${userEmail}:`, err.message);
-    return { success: false, error: err.message };
-  }
-};
-
-// Send order status update to customer
-const sendOrderStatusUpdateEmail = async (order, newStatus) => {
-  const userEmail = order.user.email;
-  const statusConfig = {
-    'pending_approval': { emoji: '⏳', color: '#FFA500' },
-    'vendor_approved': { emoji: '✅', color: '#28a745' },
-    'preparing': { emoji: '🔥', color: '#DC3545' },
-    'ready': { emoji: '🍽️', color: '#007BFF' },
-    'off_for_delivery': { emoji: '🚀', color: '#6F42C1' },
-    'delivered': { emoji: '🎉', color: '#28A745' }
-  };
-  const config = statusConfig[newStatus] || { emoji: '📦', color: '#6C757D' };
+  if (!transporter) return { success: false, message: 'Email service unavailable' };
 
   const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Order Status Update - Belleful</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, ${config.color}22 0%, ${config.color}44 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-    .status-badge { background: ${config.color}; color: white; padding: 10px 20px; border-radius: 25px; font-size: 18px; font-weight: bold; display: inline-block; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-    .progress { text-align: center; margin: 20px 0; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${config.emoji} Order Update #${order._id.slice(-6)}</h1>
-    <div class="status-badge">${newStatus.replace('_', ' ').toUpperCase()}</div>
-  </div>
-  <div class="content">
-    <p>Hi ${order.user.name},</p>
-    <p>Your order status has been updated to <strong>${newStatus.replace('_', ' ')}</strong>.</p>
-    <div class="progress">
-      <p>Order Total: ₦${order.totalAmount}</p>
-      <p>Track your order in the Belleful dashboard.</p>
-    </div>
-  </div>
-  <div class="footer">
-    <p>© 2026 Belleful. All rights reserved.</p>
-  </div>
-</body>
-</html>`;
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #28a745;">Belleful Verification Code</h2>
+      <p>Hi <strong>${name}</strong>,</p>
+      <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+      <p>Valid for 10 minutes. Don't share this code.</p>
+      <hr>
+      <p style="color: #666; font-size: 12px;">© 2024 Belleful</p>
+    </div>`;
+
+  const mailOptions = {
+    from: `"Belleful" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: 'Your Belleful Verification Code',
+    html
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error(`OTP email failed: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send Welcome Email
+ */
+const sendWelcomeEmail = async (email, name) => {
+  if (!transporter) return { success: false };
+
+  const html = `
+    <div style="font-family: Arial; max-width: 600px;">
+      <h1 style="color: #28a745;">Welcome to Belleful, ${name}!</h1>
+      <p>Thanks for joining. Browse menu, add to cart, order food!</p>
+      <a href="${process.env.FRONTEND_URL}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Start Ordering</a>
+    </div>`;
+
+  return sendTemplateEmail(email, 'Welcome to Belleful!', html);
+};
+
+/**
+ * Generic Template Email
+ */
+const sendTemplateEmail = async (email, subject, html) => {
+  if (!transporter) return { success: false };
+
+  const mailOptions = {
+    from: `"Belleful" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject,
+    html
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error(`Template email failed: ${error.message}`);
+    return { success: false };
+  }
+};
+
+/**
+ * Order Confirmation
+ */
+const sendOrderConfirmation = async (order) => {
+  const html = `
+    <h2>Order #${order._id.slice(-6)} Confirmed</h2>
+    <p>Total: ₦${order.totalAmount}</p>
+    <ul>${order.items.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>
+    <p>Check dashboard for updates.</p>`;
 
   return sendTemplateEmail(
-    userEmail,
-    `Order #${order._id.slice(-6)} - ${newStatus.replace('_', ' ')}`,
+    order.user.email,
+    `Order Confirmed - #${order._id.slice(-6)}`,
     html
   );
 };
 
-// Send email to admin on new order
-const sendNewOrderEmail = async (order) => {
-  const mailOptions = {
-    from: process.env.MAIL_USER,
-    to: process.env.ADMIN_EMAIL,
-    subject: `New Order #${order._id} - Belleful`,
-    html: `
-      <h1>New Order Received</h1>
-      <p><strong>Customer:</strong> ${order.user.name}</p>
-      <p><strong>Total:</strong> ₦${order.totalAmount}</p>
-      <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
-      <h3>Items:</h3>
-      <ul>
-        ${order.items.map(item => `<li>${item.name} x${item.quantity} @₦${item.price}</li>`).join('')}
-      </ul>
-      <p>View in dashboard.</p>
-    `,
+/**
+ * Order Status Update
+ */
+const sendOrderStatusUpdate = async (order, status) => {
+  const statusEmojis = {
+    preparing: '🔥', ready_for_pickup: '🍽️',
+    out_for_delivery: '🚀', delivered: '✅'
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`New order email sent to admin for order #${order._id}`);
-    return { success: true, message: 'New order notification sent successfully' };
-  } catch (err) {
-    console.error(`New order email failed for #${order._id}:`, err.message);
-    return { success: false, error: err.message };
-  }
+  const html = `
+    <h2>${statusEmojis[status] || '📦'} Order Update: ${status.replace('_', ' ')}</h2>
+    <p>Order #${order._id.slice(-6)} is now ${status}.</p>`;
+
+  return sendTemplateEmail(
+    order.user.email,
+    `Order Update #${order._id.slice(-6)}`,
+    html
+  );
 };
 
-module.exports = { 
-  sendOTPEmail, 
-  sendWelcomeEmail, 
+module.exports = {
+  sendOTPEmail,
+  sendWelcomeEmail,
   sendTemplateEmail,
-  sendOrderConfirmationEmail,
-  sendNewOrderEmail,
-  sendOrderStatusUpdateEmail
+  sendOrderConfirmation,
+  sendOrderStatusUpdate
 };
+

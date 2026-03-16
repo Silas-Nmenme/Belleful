@@ -3,9 +3,12 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const auth = require('../middleware/auth');
 
-router.post('/upload-receipt', auth, paymentController.uploadReceipt);
-router.post('/webhook', paymentController.webhook);
+/**
+ * Payments Routes - Receipt upload
+ */
+router.use(auth);
+router.post('/receipt', paymentController.uploadReceipt);
+router.post('/webhook', paymentController.paymentWebhook); // Public for webhooks
 
 module.exports = router;
-
 

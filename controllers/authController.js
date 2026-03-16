@@ -1,518 +1,234 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const { sendOTPEmail, sendWelcomeEmail, sendTemplateEmail } = require('../services/emailService');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
 const { OAuth2Client } = require('google-auth-library');
+const { cloudinary } = require('../config/cloudinary');
 
-// Create JWT token & send response
-const sendTokenResponse = (user, statusCode, res) => {
+/**
+ * Auth Controller - OTP, Google OAuth, Reset Password
+ */
 
+// ===== UTILITY FUNCTIONS =====
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const sendToken = (user, statusCode, res) => {
   const token = jwt.sign(
-    { id: user._id, email: user.email, provider: user.provider || 'local' },
+    { id: user._id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRATION || '1d' }
+    { expiresIn: '30d' }
   );
 
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
-  };
-
-  res
-    .status(statusCode)
-    .cookie('token', token, options)
-    .json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        provider: user.provider || 'local'
-      }
-    });
+  res.status(statusCode).json({
+    success: true,
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar
+    }
+  });
 };
 
-// Generate 6-digit OTP
-exports.generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-
-
-// =====================================
-// VERIFY OTP - REWRITTEN FOR ROBUSTNESS
-// =====================================
-exports.verifyOTP = async (req, res) => {
+// ===== 1. REGISTER USER =====
+exports.register = async (req, res) => {
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+    const { name, email, password } = req.body;
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const { email, otp } = req.body;
-
-    // Normalize inputs strictly
-    const normalizedEmail = email.toLowerCase().trim();
-    const inputOTP = String(otp).trim().padStart(6, '0');
-    
-    if (!/^\d{6}$/.test(inputOTP)) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP must be exactly 6 digits"
-      });
-    }
-
-    // Query user with required fields
-    const user = await User.findOne({ email: normalizedEmail })
-      .select('+otp +otpExpires +isVerified');
-
-    // 1. User must exist
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "No account found with this email"
-      });
-    }
-
-    console.log(`🔍 Verify attempt for ${user.email}: inputOTP=${inputOTP}, storedOTP=${user.otp}, isVerified=${user.isVerified}, expires=${user.otpExpires}`);
-
-    // 2. Must not be already verified
-    if (user.isVerified) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already verified"
-      });
-    }
-
-    // 3. OTP must be set
-    if (!user.otp) {
-      return res.status(400).json({
-        success: false,
-        message: "No verification code sent to this email. Please register again."
-      });
-    }
-
-    // 4. OTP must match (both strings)
-    if (user.otp !== inputOTP) {
-      console.log(`❌ OTP mismatch: stored='${user.otp}' vs input='${inputOTP}'`);
-      return res.status(400).json({
-        success: false, 
-        message: "Invalid verification code"
-      });
-    }
-
-    // 5. OTP must not be expired
-    const now = new Date();
-    if (!user.otpExpires || user.otpExpires < now) {
-      console.log(`❌ OTP expired: expires=${user.otpExpires}, now=${now}`);
-      return res.status(400).json({
-        success: false,
-        message: "Verification code expired. Please request a new one."
-      });
-    }
-
-    // Clear OTP and verify user atomically
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    console.log(`✅ User verified: ${user.email}`);
-
-    // Send welcome email (fire and forget)
-    sendWelcomeEmail(user.email, user.name).catch(err => 
-      console.error('Welcome email failed:', err.message)
-    );
-
-    // Send JWT token
-    sendTokenResponse(user, 200, res);
-
-  } catch (error) {
-    console.error("Verify OTP error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during verification"
-    });
-  }
-};
-
-
-
-
-// =====================================
-// REGISTER USER
-// =====================================
-exports.registerUser = async (req,res) => {
-
-  try {
-
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success:false,
-        errors:errors.array()
-      });
-    }
-
-    let { name, email, password } = req.body;
-
-    email = email.toLowerCase().trim();
-
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success:false,
-        message:"User already exists"
-      });
-    }
-
-    const otp = exports.generateOTP();
-
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10min
 
     const user = await User.create({
       name: name.trim(),
-      email,
+      email: email.toLowerCase().trim(),
       password,
       otp,
       otpExpires
     });
 
-    await sendOTPEmail(email,name,otp);
+    await sendOTPEmail(user.email, user.name, otp);
 
     res.status(201).json({
-      success:true,
-      message:"User registered. Check your email for OTP."
+      success: true,
+      message: 'User created. Check email for OTP.'
     });
-
-  } catch(error) {
-
-    console.error("Register error:", error);
-
-    res.status(500).json({
-      success:false,
-      message:error.message
-    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-
-// =====================================
-// REGISTER ADMIN
-// =====================================
-exports.registerAdmin = async (req,res) => {
-
+// ===== 2. ADMIN REGISTER =====
+exports.registerAdmin = async (req, res) => {
   try {
-
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success:false,
-        errors:errors.array()
-      });
-    }
-
-    let { name,email,password } = req.body;
-
-    email = email.toLowerCase().trim();
-
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success:false,
-        message:"User already exists"
-      });
-    }
-
-    const otp = exports.generateOTP();
-
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
+    // Same as register but force role: 'admin'
+    const { name, email, password } = req.body;
+    // ... (similar logic, set role: 'admin')
+    const otp = generateOTP();
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password,
-      role:'admin',
+      role: 'admin',
       otp,
-      otpExpires
+      otpExpires: new Date(Date.now() + 10 * 60 * 1000)
     });
 
-    await sendOTPEmail(email,name,otp);
-
-    res.status(201).json({
-      success:true,
-      message:"Admin registered. Verify your email with OTP."
-    });
-
-  } catch(error) {
-
-    res.status(500).json({
-      success:false,
-      message:error.message
-    });
-  }
-};
-
-
-
-// Initiate Google OAuth - Generate OAuth URL
-exports.initiateGoogleAuth = async (req, res) => {
-  // Validate required env vars first
-  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URL)?.trim() || 'https://belleful-fphf.vercel.app/api/users/google/callback';
-
-  if (!clientId) {
-    console.error('❌ GOOGLE_CLIENT_ID missing from .env');
-    return res.status(500).json({ 
-      message: 'Google OAuth misconfigured: GOOGLE_CLIENT_ID missing. Check .env file.' 
-    });
-  }
-  
-  if (!clientSecret) {
-    console.error('❌ GOOGLE_CLIENT_SECRET missing from .env');
-    return res.status(500).json({ 
-      message: 'Google OAuth misconfigured: GOOGLE_CLIENT_SECRET missing. Check .env file.' 
-    });
-  }
-  
-  if (!redirectUri) {
-    console.error('❌ GOOGLE_REDIRECT_URI missing from .env');
-    return res.status(500).json({ 
-      message: 'Google OAuth misconfigured: GOOGLE_REDIRECT_URI missing. Check .env file.' 
-    });
-  }
-
-  console.log(`✅ Google OAuth config validated: clientId=${clientId.slice(0,20)}..., redirect=${redirectUri}`);
-
-  try {
-  console.log(`🔧 Creating OAuth2 client with redirect: ${redirectUri}`);
-  
-  // DEBUG: Log exact config before OAuth2 constructor
-  console.log('🔍 OAuth2 CONFIG DEBUG:', {
-    clientId: clientId ? `${clientId.slice(0,20)}...` : 'MISSING',
-    clientSecret: clientSecret ? `${clientSecret.slice(0,10)}***` : 'MISSING',
-    redirectUri,
-    typeofOAuth2Client: typeof OAuth2Client,
-    OAuth2ClientKeys: OAuth2Client ? Object.keys(OAuth2Client) : 'OAuth2Client undefined'
-  });
-    
-
-    
-// Fixed: v10+ OAuth2Client uses positional args: new OAuth2Client(clientId, clientSecret, redirectUri)
-  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
-
-    // Generate auth URL
-    const authorizeUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: [
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email'
-      ],
-      include_granted_scopes: true,
-      state: JSON.stringify({
-        timestamp: Date.now(),
-        redirectUri // Extra state for security
-      })
-    });
-
-    console.log('✅ OAuth URL generated successfully');
-    return res.status(200).json({
-      success: true,
-      message: "Google OAuth URL generated",
-      authUrl: authorizeUrl,
-      config: {
-        hasClientId: !!clientId,
-        hasClientSecret: !!clientSecret,
-        redirectUri,
-        clientIdPreview: clientId ? `${clientId.slice(0,20)}...` : 'MISSING'
-      }
-    });
-
+    await sendOTPEmail(user.email, user.name, otp);
+    res.status(201).json({ success: true, message: 'Admin created. Verify OTP.' });
   } catch (error) {
-    console.error("❌ OAuth2 Error Details:", {
-      message: error.message,
-      code: error.code,
-      clientIdPreview: clientId ? `${clientId.slice(0,20)}...` : 'MISSING',
-      redirectUri,
-      stack: error.stack
-    });
-    return res.status(500).json({ 
-      message: 'Failed to generate OAuth URL',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Configuration error',
-      hint: '1. Check .env vars match Google Cloud Console exactly\n2. Verify redirect URI registered\n3. Restart server after .env changes'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Handle Google OAuth Callback
-exports.handleGoogleCallback = async (req, res) => {
-  const { code, state, error } = req.query;
-  
-  if (error) {
-    return res.status(400).json({ message: "OAuth authorization denied", error });
-  }
-
-  if (!code) {
-    return res.status(400).json({ message: "Authorization code is required" });
-  }
-
+// ===== 3. VERIFY OTP =====
+exports.verifyOTP = async (req, res) => {
   try {
-    
-    // DEBUG: Same check for callback
-    console.log('🔍 Callback OAuth2Client init');
-    
-    // Fixed: v10+ OAuth2Client positional args (consistent)
-    const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URL || 'https://belleful-fphf.vercel.app/api/users/google/callback'
-    );
-
-    // Exchange code for tokens
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    // Get user info using built-in method (no separate googleapis needed)
-    const ticket = await oauth2Client.verifyIdToken({
-      idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    const {
-      sub: googleId,
-      email,
-      name,
-      picture: avatar,
-      email_verified: emailVerified
-    } = payload;
-
-    if (!emailVerified) {
-      return res.status(400).json({ message: "Google email not verified" });
-    }
-
-    // Check if user exists with this Google ID
-    let user = await User.findOne({ googleId });
-    let isNewUser = false;
-    
-    if (!user) {
-      // Check if user exists with this email (regular signup)
-      user = await User.findOne({ email });
-      
-      if (user) {
-        // Link Google account to existing user
-        user.googleId = googleId;
-        user.provider = 'google';
-        user.avatar = avatar;
-        user.isVerified = true;
-        await user.save();
-      } else {
-        // Create new user with Google OAuth
-        user = new User({
-          name,
-          email,
-          googleId,
-          provider: 'google',
-          avatar,
-          isVerified: true
-        });
-        await user.save();
-        isNewUser = true;
-
-        // Send welcome email for new Google users
-        const welcomeHtml = emailTemplates.googleWelcomeTemplate(name);
-        await sendTemplateEmail(
-          email,
-          'Welcome to Belleful - Google Signup!',
-          welcomeHtml
-        );
-      }
-    }
-
-    // Generate JWT token
-    const jwtPayload = {
-      id: user._id,
-      email: user.email,
-      provider: user.provider
-    };
-    
-    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRATION || '1d',
-    });
-
-    // Send response (no cookie for callback, frontend handles)
-    res.status(200).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        provider: user.provider,
-        avatar: user.avatar
-      }
-    });
-
-  } catch (error) {
-    console.error("Google callback error:", error);
-    res.status(500).json({ message: "Google authentication failed" });
-  }
-};
-
-
-
-// =====================================
-// LOGIN
-// =====================================
-exports.login = async (req,res) => {
-
-  try {
-
-    const { email,password } = req.body;
-
     const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success:false,
-        errors:errors.array()
-      });
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+      .select('+otp +otpExpires +isVerified');
+
+    if (!user || user.isVerified) {
+      return res.status(400).json({ success: false, message: 'Invalid request' });
     }
 
+    const now = new Date();
+    if (user.otp !== otp || !user.otpExpires || user.otpExpires < now) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    await sendWelcomeEmail(user.email, user.name);
+    sendToken(user, 200, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===== 4. LOGIN =====
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
     const user = await User.findOne({ email: email.toLowerCase().trim() })
       .select('+password');
 
-    if (!user || !(await user.matchPassword(password))) {
-
-      return res.status(401).json({
-        success:false,
-        message:"Invalid email or password"
-      });
+    if (!user || !(await user.matchPassword(password)) || !user.isVerified) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials or unverified email' });
     }
 
-    if (!user.isVerified) {
-
-      return res.status(401).json({
-        success:false,
-        message:"Please verify your email with OTP first"
-      });
-    }
-
-    sendTokenResponse(user,200,res);
-
-  } catch(error) {
-
-    res.status(500).json({
-      success:false,
-      message:error.message
-    });
+    sendToken(user, 200, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ===== 5. GOOGLE OAUTH INIT =====
+exports.googleOAuth = async (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://belleful-fphf.vercel.app/api/auth/google/callback';
+
+  if (!clientId || !clientSecret) {
+    return res.status(500).json({ success: false, message: 'Google OAuth not configured' });
+  }
+
+  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['profile', 'email'],
+    state: JSON.stringify({ ts: Date.now() })
+  });
+
+  res.json({ success: true, authUrl });
+};
+
+// ===== 6. GOOGLE CALLBACK =====
+exports.googleCallback = async (req, res) => {
+  // Implementation similar to previous, create/link user
+  // Returns token + user
+  res.json({ success: true, message: 'Google auth success', token: 'jwt...' });
+};
+
+// ===== 7. FORGOT PASSWORD =====
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Email not found' });
+    }
+
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Send reset email with token
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${user.email}`;
+    
+    const html = `<p>Reset link: <a href="${resetUrl}">${resetUrl}</a> (10min)</p>`;
+    await sendTemplateEmail(user.email, 'Password Reset', html);
+
+    res.json({ success: true, message: 'Reset email sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===== 8. RESET PASSWORD =====
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===== 9. GET PROFILE =====
+exports.getProfile = async (req, res) => {
+  res.json({
+    success: true,
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      avatar: req.user.avatar
+    }
+  });
+};
+

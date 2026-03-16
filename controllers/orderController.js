@@ -1,89 +1,128 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
-const { getPaymentDetails } = require('../services/paymentService');
-const { sendNewOrderEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
-
+const MenuItem = require('../models/MenuItem');
+const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../services/emailService');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
 
-// @desc Checkout - create order from cart
-exports.checkout = [auth, async (req, res) => {
+/**
+ * Order Controller - Checkout & Lifecycle Management
+ */
+
+// ===== CREATE ORDER (Checkout) =====
+exports.checkout = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user.id }).populate('items.menuItem');
+    const cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+    
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart empty' });
     }
 
-    const orderItems = cart.items.map(item => ({
-      menuItem: item.menuItem._id,
-      name: item.menuItem.name,
-      quantity: item.quantity,
-      price: item.price
-    }));
-
-    const order = new Order({
-      user: req.user.id,
-      items: orderItems,
-      totalAmount: cart.totalAmount,
-      accountNumber: process.env.BANK_ACCOUNT || '8107586167',
-      bankName: process.env.BANK_NAME || 'Opay'
-    });
-
-    const createdOrder = await order.save();
-
-    // Clear cart
-    await Cart.findOneAndDelete({ user: req.user.id });
-
-    await sendNewOrderEmail(createdOrder); // Email notification to admin (socket removed)
-
-    const paymentDetails = getPaymentDetails(createdOrder);
-
-    res.status(201).json({ success: true, data: createdOrder, paymentDetails });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}];
-
-// @desc Get user orders
-exports.getMyOrders = [auth, async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.user.id }).populate('items.menuItem', 'name').sort('-createdAt');
-    res.json({ success: true, count: orders.length, data: orders });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}];
-
-// @desc Get all orders (admin)
-exports.getOrders = [auth, isAdmin, async (req, res) => {
-  try {
-    const orders = await Order.find().populate('user', 'name email').populate('items.menuItem', 'name').sort('-createdAt');
-    res.json({ success: true, count: orders.length, data: orders });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}];
-
-// @desc Update order status/payment (admin)
-exports.updateOrderStatus = [auth, isAdmin, async (req, res) => {
-  const { orderStatus, paymentStatus } = req.body;
-  try {
-    const order = await Order.findById(req.params.id).populate('user', 'id');
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+    // Validate stock
+    for (let item of cart.items) {
+      if (item.menuItem.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `${item.menuItem.name} insufficient stock`
+        });
+      }
     }
 
-    order.orderStatus = orderStatus || order.orderStatus;
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+    const orderData = {
+      user: req.user._id,
+      items: cart.items.map(item => ({
+        menuItem: item.menuItem._id,
+        name: item.menuItem.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      totalAmount: cart.totalAmount,
+      deliveryAddress: req.body.deliveryAddress,
+      phoneNumber: req.body.phoneNumber,
+      bankAccount: req.body.bankAccount,
+      bankName: req.body.bankName
+    };
 
-    const updatedOrder = await order.save();
+    const order = await Order.create(orderData);
 
-    // Email notification to user (real-time socket removed)
-    sendOrderStatusUpdateEmail(updatedOrder, order.orderStatus).catch(console.error);
+    // Decrement stock
+    for (let item of cart.items) {
+      await MenuItem.findByIdAndUpdate(item.menuItem._id, {
+        $inc: { stock: -item.quantity }
+      });
+    }
 
-    res.json({ success: true, data: updatedOrder });
+    // Clear cart
+    cart.items = [];
+    await cart.save();
+
+    // Email
+    await sendOrderConfirmation(order);
+
+    res.status(201).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// ===== GET USER ORDERS =====
+exports.getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .populate('items.menuItem', 'name image')
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({ success: true, data: orders });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-}];
+};
+
+// ===== ADMIN: ALL ORDERS =====
+exports.getAllOrders = async (req, res) => {
+  try {
+    const { status, limit = 50, page = 1, dateFrom } = req.query;
+    const query = {};
+    
+    if (status) query.orderStatus = status;
+    if (dateFrom) query.createdAt = { $gte: new Date(dateFrom) };
+
+    const orders = await Order.find(query)
+      .populate('user', 'name phoneNumber')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit);
+
+    const total = await Order.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: { page, limit, total }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===== UPDATE STATUS (Admin) =====
+exports.updateStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findById(req.params.id).populate('user');
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    order.orderStatus = status;
+    await order.save();
+
+    // Notify customer
+    await sendOrderStatusUpdate(order, status);
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 

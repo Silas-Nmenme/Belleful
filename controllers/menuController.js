@@ -1,111 +1,109 @@
 const MenuItem = require('../models/MenuItem');
-const { cloudinary, uploadImage } = require('../config/cloudinary');
-const auth = require('../middleware/auth');
+const { uploadImage, deleteImage } = require('../config/cloudinary');
 const { isAdmin } = require('../middleware/role');
 
-// @desc  Get all menu items
-exports.getMenuItems = async (req, res) => {
+/**
+ * Menu Controller - CRUD with Inventory
+ */
+
+// ===== GET ALL ITEMS =====
+exports.getMenu = async (req, res) => {
   try {
-    const items = await MenuItem.find({ available: true }).sort('-createdAt');
-    res.json({ success: true, count: items.length, data: items });
+    const { category, available, search, page = 1, limit = 12 } = req.query;
+    
+    const query = { available: true };
+    if (category) query.category = category;
+    if (search) query.name = { $regex: search, $options: 'i' };
+
+    const items = await MenuItem.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .lean();
+
+    const total = await MenuItem.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc  Get single menu item
+// ===== GET SINGLE =====
 exports.getMenuItem = async (req, res) => {
   try {
-    const item = await MenuItem.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ success: false, message: 'Menu item not found' });
-    }
+    const item = await MenuItem.findById(req.params.id).lean();
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
     res.json({ success: true, data: item });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc  Create menu item (admin)
-exports.createMenuItem = [auth, isAdmin, async (req, res) => {
+// ===== CREATE ITEM (Admin) =====
+exports.createMenuItem = async (req, res) => {
   try {
-    console.log('Menu create - body:', req.body);
-    console.log('Menu create - file:', req.file ? req.file.filename : 'no file');
-
-    // Validate required fields
-    const { name, category, price } = req.body;
-    if (!name?.trim()) {
-      return res.status(400).json({ success: false, message: 'Name is required' });
-    }
-    if (!category || !['food', 'drink', 'side'].includes(category)) {
-      return res.status(400).json({ success: false, message: 'Category must be food, drink, or side' });
-    }
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      return res.status(400).json({ success: false, message: 'Price must be a number greater than 0' });
-    }
-
     let imageUrl = '';
     if (req.file) {
-      const result = await uploadImage('menu').upload(req.file.path);
+      const result = await uploadImage('menu', req.file);
       imageUrl = result.secure_url;
-      // Cleanup temp file
-      require('fs').unlink(req.file.path, (err) => {
-        if (err) console.error('Temp file cleanup error:', err);
-      });
     }
 
-    const itemData = {
-      name: name.trim(),
-      category,
-      price: priceNum,
-      description: req.body.description?.trim() || '',
-      available: req.body.available !== 'false',
+    const item = await MenuItem.create({
+      ...req.body,
       image: imageUrl
-    };
+    });
 
-    const item = new MenuItem(itemData);
-    const createdItem = await item.save();
-    
-    res.status(201).json({ success: true, data: createdItem });
+    res.status(201).json({ success: true, data: item });
   } catch (error) {
-    console.error('Create menu error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
-}];
+};
 
-
-// @desc  Update menu item (admin)
-exports.updateMenuItem = [auth, isAdmin, async (req, res) => {
+// ===== UPDATE ITEM (Admin) =====
+exports.updateMenuItem = async (req, res) => {
   try {
-    let item = await MenuItem.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ success: false, message: 'Menu item not found' });
+    const item = await MenuItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+
+    // Update image if new
+    if (req.file) {
+      if (item.image) {
+        const publicId = item.image.split('/').pop().split('.')[0];
+        await deleteImage(publicId);
+      }
+      const result = await uploadImage('menu', req.file);
+      req.body.image = result.secure_url;
     }
 
-    item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    Object.assign(item, req.body);
+    await item.save();
 
     res.json({ success: true, data: item });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
-}];
+};
 
-// @desc  Delete menu item (admin)
-exports.deleteMenuItem = [auth, isAdmin, async (req, res) => {
+// ===== DELETE ITEM (Admin) =====
+exports.deleteMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ success: false, message: 'Menu item not found' });
+    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+
+    if (item.image) {
+      const publicId = item.image.split('/').pop().split('.')[0];
+      await deleteImage(publicId);
     }
 
     await item.deleteOne();
-    res.json({ success: true, message: 'Menu item deleted' });
+    res.json({ success: true, message: 'Item deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-}];
+};
 
