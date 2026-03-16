@@ -8,8 +8,23 @@ const morgan = require("morgan");
 const path = require("path");
 const dotenv = require("dotenv");
 
+
 const app = express();
-const PORT = process.env.PORT || 1400;
+
+// ===== ENV VALIDATION =====
+const requiredEnvVars = [
+  'MONGO_URI', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME', 
+  'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'
+];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ Missing required ENV vars:', missingVars.join(', '));
+  console.error('Add to Vercel dashboard: Project Settings > Environment Variables');
+  process.exit(1);
+}
+console.log('✅ All required ENV vars present');
+
+const PORT = process.env.PORT || 2500;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 
 
@@ -52,8 +67,32 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
+// ===== GLOBAL ERROR HANDLER (AFTER ROUTES) =====
+app.use((err, req, res, next) => {
+  console.error('🚨 Global Error:', err.stack || err.message);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+
 // ===== START SERVER =====
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit in serverless
+});
+
+// Handle unhandled exceptions
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Uncaught Exception:', error);
+  process.exit(1);
+});
+
 connectDB().then(() => {
+
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
