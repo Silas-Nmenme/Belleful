@@ -13,7 +13,7 @@ const bcrypt = require('bcryptjs');
 
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
-    console.log('✅ Connected to MongoDB');
+    console.log('Connected to MongoDB');
     
     // Clear existing menu
     await MenuItem.deleteMany({});
@@ -33,7 +33,7 @@ mongoose.connect(process.env.MONGO_URI)
     ];
 
     const menuItems = await MenuItem.insertMany(demoMenu);
-    console.log(`✅ Added ${menuItems.length} demo menu items`);
+    console.log(`Added ${menuItems.length} demo menu items`);
 
     // Create admin user if none exists (idempotent)
     try {

@@ -1,17 +1,18 @@
 const MenuItem = require('../models/MenuItem');
 const { deleteImage } = require('../config/cloudinary');
-const { isAdmin } = require('../middleware/role');
+
 
 /**
- * Menu Controller - CRUD with Inventory
+ * Menu Controller - Admin CRUD with validation & inventory
  */
+
 
 // ===== GET ALL ITEMS =====
 exports.getMenu = async (req, res) => {
   try {
     const { category, available, search, page = 1, limit = 12 } = req.query;
     
-    const query = { available: true };
+    const query = { available: true, stock: { $gt: 0 } };
     if (category) query.category = category;
     if (search) query.name = { $regex: search, $options: 'i' };
 
@@ -22,6 +23,7 @@ exports.getMenu = async (req, res) => {
       .lean();
 
     const total = await MenuItem.countDocuments(query);
+
 
     res.json({
       success: true,
@@ -36,7 +38,7 @@ exports.getMenu = async (req, res) => {
 // ===== GET SINGLE =====
 exports.getMenuItem = async (req, res) => {
   try {
-    const item = await MenuItem.findById(req.params.id).lean();
+    const item = await MenuItem.findById(req.params.id);
     if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
     res.json({ success: true, data: item });
   } catch (error) {
@@ -44,66 +46,122 @@ exports.getMenuItem = async (req, res) => {
   }
 };
 
+
+// ===== MATCH MODEL VALIDATION =====
+const isValidationError = (error) => error.name === 'ValidationError';
+
+
 // ===== CREATE ITEM (Admin) =====
+/**
+ * Create new menu item with validation & inventory setup
+ */
 exports.createMenuItem = async (req, res) => {
   try {
-    const { imageUrl } = req.body;
-    if (imageUrl && !imageUrl.includes('cloudinary.com')) {
-      return res.status(400).json({ success: false, message: 'Invalid image URL' });
-    }
-
-    const item = await MenuItem.create({
+    const itemData = {
       ...req.body,
-      image: imageUrl || ''
+      stock: req.body.stock ?? 50, // Model defaults, but explicit
+      available: (req.body.stock ?? 50) > 0
+    };
+    
+    const item = await MenuItem.create(itemData);
+    
+    const populated = await MenuItem.findById(item._id); // For virtuals
+    
+    res.status(201).json({ 
+      success: true, 
+      data: populated,
+      message: 'Menu item created successfully'
     });
-
-    res.status(201).json({ success: true, data: item });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    if (isValidationError(error)) {
+      const msg = Object.values(error.errors)[0].message;
+      return res.status(400).json({ success: false, message: msg });
+    }
+    res.status(500).json({ success: false, message: 'Server error creating menu item' });
   }
 };
 
+
+
 // ===== UPDATE ITEM (Admin) =====
+/**
+ * Update menu item with validation & image handling
+ */
 exports.updateMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
-    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
-
-    const { imageUrl } = req.body;
-    if (imageUrl && !imageUrl.includes('cloudinary.com')) {
-      return res.status(400).json({ success: false, message: 'Invalid image URL' });
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
-    // Delete old image if new URL provided
-    if (imageUrl && imageUrl !== item.image && item.image) {
-      const publicId = item.image.split('/').pop().split('.')[0];
-      await deleteImage(publicId);
+    // Handle image change first
+    let imageDeleted = false;
+    if (req.body.image && req.body.image !== item.image && item.image) {
+      try {
+        const publicIdMatch = item.image.match(/\/([^/]+)\.(jpg|jpeg|png|webp)$/i);
+        if (publicIdMatch) {
+          await deleteImage(publicIdMatch[1]);
+          imageDeleted = true;
+        }
+      } catch (imgErr) {
+        console.warn('Image deletion failed:', imgErr.message);
+      }
     }
 
-    Object.assign(item, req.body);
-    await item.save();
+    // Update with model validation
+    const updateData = {
+      ...req.body,
+      available: (req.body.stock ?? item.stock) > 0
+    };
+    const updated = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
 
-    res.json({ success: true, data: item });
+    res.json({ 
+      success: true, 
+      data: updated,
+      message: 'Menu item updated successfully'
+    });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    if (isValidationError(error)) {
+      const msg = Object.values(error.errors)[0].message;
+      return res.status(400).json({ success: false, message: msg });
+    }
+    res.status(500).json({ success: false, message: 'Server error updating menu item' });
   }
 };
 
+
+
 // ===== DELETE ITEM (Admin) =====
+/**
+ * Delete menu item & cleanup image
+ */
 exports.deleteMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
-    if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
-
-    if (item.image) {
-      const publicId = item.image.split('/').pop().split('.')[0];
-      await deleteImage(publicId);
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
-    await item.deleteOne();
-    res.json({ success: true, message: 'Item deleted' });
+    if (item.image) {
+      const publicIdMatch = item.image.match(/\/([^/]+)\.(jpg|jpeg|png|webp)$/i);
+      if (publicIdMatch) {
+        await deleteImage(publicIdMatch[1]);
+      }
+    }
+
+    await MenuItem.findByIdAndDelete(req.params.id);
+    res.json({ 
+      success: true, 
+      message: 'Menu item deleted successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error deleting menu item' });
   }
 };
+
+
 
