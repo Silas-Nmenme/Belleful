@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
 // Attach io to app for utils/socket.js getIo(req)
 app.set('io', io);
 
-// Middleware
+// ===== CORS Setup =====
 app.use(cors({
   origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -89,35 +89,13 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
-// Explicit preflight handler
-app.options('*', cors({
-  origin: [FRONTEND_URL, 'https://bellefulchop.netlify.app'],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
-
-// API root
-app.get('/', (req, res) => res.json({ message: 'Belleful Chop API' }));
-
-// Health check
-app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
-
-
-// Global error handlers
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit on dev, but log
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception - continuing in serverless mode:', error);
-  // Don't exit - serverless compatibility
-});
-
-// Start DB and server (server always starts)
-connectDB().catch(console.error); // Fire and forget
-
-server.listen(PORT, () => {
-console.log(`Belleful API running on port ${PORT}`);
+// Start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Allowed frontend origin: ${FRONTEND_URL}`);
+  });
+}).catch((error) => {
+  console.error("MongoDB Connection Failed:", error.message);
+  process.exit(1);
 });
