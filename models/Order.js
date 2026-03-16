@@ -76,8 +76,7 @@ const orderSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for queries
-orderSchema.index({ user: 1, createdAt: -1 });
+// Indexes for queries (compound covers user queries)
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ paymentStatus: 1 });
 

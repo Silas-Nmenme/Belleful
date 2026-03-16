@@ -41,7 +41,6 @@ const cartSchema = new mongoose.Schema({
 });
 
 // Indexes
-cartSchema.index({ user: 1 });
 
 // Auto-calculate total
 cartSchema.pre('save', function(next) {

@@ -21,6 +21,7 @@ const upload = multer({
   }
 });
 
+
 // ===== UPLOAD RECEIPT =====
 exports.uploadReceipt = async (req, res) => {
   try {
@@ -46,8 +47,12 @@ exports.uploadReceipt = async (req, res) => {
       await order.save();
     }
 
-    // Cleanup temp file
-    require('fs').unlink(req.file.path, () => {});
+// Cleanup temp file
+    const fs = require('fs');
+    fs.unlink(req.file.path, err => { 
+      if (err) console.error('Cleanup error:', err); 
+    });
+
 
     res.json({ 
       success: true, 
@@ -67,5 +72,10 @@ exports.paymentWebhook = (req, res) => {
   res.json({ success: true, message: 'Webhook received' });
 };
 
-module.exports = { uploadReceipt: upload.single('receipt'), paymentWebhook };
+module.exports = { 
+  uploadReceipt: exports.uploadReceipt,
+  paymentWebhook: exports.paymentWebhook,
+  upload: upload
+};
+
 

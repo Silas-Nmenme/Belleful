@@ -24,7 +24,7 @@ if (missing.length) {
 }
 
 // ===== CONSTANTS =====
-const PORT = process.env.PORT || 3500;
+const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 
 // ===== 1. SECURITY MIDDLEWARE =====

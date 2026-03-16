@@ -60,10 +60,7 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Index for faster queries
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ resetPasswordToken: 1 });
+// No explicit indexes needed (implicit from unique/sparse handle it)
 
 // ===== PASSWORD HASHING =====
 userSchema.pre('save', async function(next) {
