@@ -1,17 +1,13 @@
-# Belleful Vercel 500 Fix - TODO
+# Fix Vercel Deployment Warnings
 
-## Progress Tracker
-- [x] **Step 1**: Create this TODO.md (current)
-- [x] **Step 2**: Edit server.js - Add global error handler & env var validation
-- [x] **Step 3**: Edit config/database.js - Add DB connection retry logic
-- [x] **Step 4**: Skipped - async errors already handled well
-- [x] **Step 5**: Test locally: npm start successful (server running, no crash)
-- [ ] **Step 6**: Instructions for Vercel env vars & redeploy
-- [ ] **Step 7**: attempt_completion with results
+## Steps
+- [x] 1. Update vercel.json to v2+ format (remove builds warning)
+- [x] 2. Update package.json (bcryptjs + overrides for deprecations)
+- [ ] 3. Run `npm install` to update package-lock.json
+- [ ] 4. Test locally: `npm run dev`
+- [ ] 5. Redeploy to Vercel and verify clean logs
 
-**Next**: Step 2 - Edit server.js
+**Current step: 1-2 (file edits)**
 
-**Instructions**: 
-- Add required env vars to Vercel: MONGO_URI (Atlas connection string), JWT_SECRET (random 32+ chars), CLOUDINARY_CLOUD_NAME/API_KEY/SECRET, etc.
-- Redeploy after changes: `vercel --prod`
+Progress: 0/5 ✅
 
