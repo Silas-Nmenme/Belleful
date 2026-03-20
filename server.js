@@ -85,7 +85,7 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/contact', require('./routes/contact'));
+
 
 // ===== 5. 404 HANDLER =====
 app.use('*', (req, res) => {
@@ -118,8 +118,7 @@ const startServer = async () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Frontend: ${FRONTEND_URL}`);
       
-      // Init email after server start
-      emailService.initTransporter();
+      // Email service auto-initializes on module load
     });
   } catch (err) {
     console.error('Failed to start server:', err);
