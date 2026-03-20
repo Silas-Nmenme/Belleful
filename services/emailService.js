@@ -21,7 +21,12 @@ const initTransporter = () => {
   transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT),
-    secure: process.env.EMAIL_PORT == 465,
+    secure: parseInt(process.env.EMAIL_PORT) === 465,
+    tls: {
+      rejectUnauthorized: false
+    },
+    logger: process.env.NODE_ENV === 'development',
+    debug: process.env.NODE_ENV === 'development',
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.EMAIL_PASS
@@ -40,8 +45,8 @@ const initTransporter = () => {
   return transporter;
 };
 
-// Init on load
-initTransporter();
+// Export for server.js init (remove auto-init)
+module.exports.initTransporter = initTransporter;
 
 /**
  * Send OTP Email
@@ -155,6 +160,7 @@ module.exports = {
   sendWelcomeEmail,
   sendTemplateEmail,
   sendOrderConfirmation,
-  sendOrderStatusUpdate
+  sendOrderStatusUpdate,
+  initTransporter
 };
 

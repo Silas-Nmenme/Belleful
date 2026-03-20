@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const connectDB = require('./config/database');
+const emailService = require('./services/emailService');
 const path = require('path');
 
 /**
@@ -84,6 +85,7 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/contact', require('./routes/contact'));
 
 // ===== 5. 404 HANDLER =====
 app.use('*', (req, res) => {
@@ -115,6 +117,9 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Frontend: ${FRONTEND_URL}`);
+      
+      // Init email after server start
+      emailService.initTransporter();
     });
   } catch (err) {
     console.error('Failed to start server:', err);
