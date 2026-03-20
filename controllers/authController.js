@@ -183,8 +183,8 @@ exports.forgotPassword = async (req, res) => {
     // Send reset email with token
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${user.email}`;
     
-    const html = `<p>Reset link: <a href="${resetUrl}">${resetUrl}</a> (10min)</p>`;
-    await sendTemplateEmail(user.email, 'Password Reset', html);
+    const html = emailTemplates.passwordReset(user.name, resetUrl);
+    await sendTemplateEmail(user.email, 'Password Reset - Belleful', html);
 
     res.json({ success: true, message: 'Reset email sent' });
   } catch (error) {

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { emailTemplates } = require('../utils/emailTemplates');
 
 /**
  * Email Service - Production OTP, Orders, Notifications
@@ -54,15 +55,7 @@ module.exports.initTransporter = initTransporter;
 const sendOTPEmail = async (email, name, otp) => {
   if (!transporter) return { success: false, message: 'Email service unavailable' };
 
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #28a745;">Belleful Verification Code</h2>
-      <p>Hi <strong>${name}</strong>,</p>
-      <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
-      <p>Valid for 10 minutes. Don't share this code.</p>
-      <hr>
-      <p style="color: #666; font-size: 12px;">© 2024 Belleful</p>
-    </div>`;
+  const html = emailTemplates.otpVerification(name, otp);
 
   const mailOptions = {
     from: `"Belleful" <${process.env.MAIL_USER}>`,
@@ -86,12 +79,7 @@ const sendOTPEmail = async (email, name, otp) => {
 const sendWelcomeEmail = async (email, name) => {
   if (!transporter) return { success: false };
 
-  const html = `
-    <div style="font-family: Arial; max-width: 600px;">
-      <h1 style="color: #28a745;">Welcome to Belleful, ${name}!</h1>
-      <p>Thanks for joining. Browse menu, add to cart, order food!</p>
-      <a href="${process.env.FRONTEND_URL}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Start Ordering</a>
-    </div>`;
+  const html = emailTemplates.welcomeEmail(name);
 
   return sendTemplateEmail(email, 'Welcome to Belleful!', html);
 };
@@ -122,11 +110,13 @@ const sendTemplateEmail = async (email, subject, html) => {
  * Order Confirmation
  */
 const sendOrderConfirmation = async (order) => {
-  const html = `
-    <h2>Order #${order._id.slice(-6)} Confirmed</h2>
-    <p>Total: ₦${order.totalAmount}</p>
-    <ul>${order.items.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>
-    <p>Check dashboard for updates.</p>`;
+  const html = emailTemplates.orderConfirmation({
+    _id: order._id,
+    items: order.items,
+    totalAmount: order.totalAmount,
+    deliveryAddress: order.deliveryAddress,
+    phoneNumber: order.phoneNumber
+  });
 
   return sendTemplateEmail(
     order.user.email,
@@ -139,14 +129,7 @@ const sendOrderConfirmation = async (order) => {
  * Order Status Update
  */
 const sendOrderStatusUpdate = async (order, status) => {
-  const statusEmojis = {
-    preparing: '🔥', ready_for_pickup: '🍽️',
-    out_for_delivery: '🚀', delivered: '✅'
-  };
-
-  const html = `
-    <h2>${statusEmojis[status] || '📦'} Order Update: ${status.replace('_', ' ')}</h2>
-    <p>Order #${order._id.slice(-6)} is now ${status}.</p>`;
+  const html = emailTemplates.orderStatusUpdate(order._id.slice(-6), status);
 
   return sendTemplateEmail(
     order.user.email,

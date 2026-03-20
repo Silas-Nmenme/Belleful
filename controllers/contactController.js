@@ -1,5 +1,6 @@
 const Contact = require('../models/Contact');
 const { sendTemplateEmail } = require('../services/emailService');
+const { emailTemplates } = require('../utils/emailTemplates');
 
 /**
  * Contact Controller - Handle contact form submissions
@@ -18,17 +19,8 @@ exports.submitContactForm = async (req, res) => {
     // Send notification email to admin
     const adminEmail = process.env.ADMIN_EMAIL;
     if (adminEmail) {
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #28a745;">🔔 New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${fullName}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phoneNumber}</p>
-          <p><strong>Message:</strong><br>${message.replace(/\n/g, '<br>')}</p>
-          <hr>
-          <p style="color: #666; font-size: 12px;">Submitted: ${new Date().toLocaleString()}</p>
-        </div>`;
-      await sendTemplateEmail(adminEmail, 'New Contact Form Submission - Belleful', html);
+      const html = emailTemplates.contactNotification({ fullName, email, phoneNumber, message });
+      await sendTemplateEmail(adminEmail, '🔔 New Contact Form - Belleful', html);
     } else {
       console.log('ADMIN_EMAIL not set. Contact saved but no email sent:', { fullName, email, phoneNumber });
     }
