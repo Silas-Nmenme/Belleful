@@ -51,8 +51,7 @@ const contactUs = [
 
       res.json({ 
         success: true, 
-        message: 'Message saved and sent successfully! We will reply soon.',
-        contactId: contact._id
+        message: 'Message saved and sent successfully! We will reply soon.'
       });
     } catch (error) {
       console.error('Contact save/email error:', error);
