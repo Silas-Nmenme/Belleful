@@ -4,7 +4,7 @@ const emailService = require('../services/emailService');
 const { emailTemplates } = require('../utils/emailTemplates');
 
 /**
- * Contact Form Controller - Saves to DB + Email notification
+ * Contact Form Controller - Saves to DB + Email notification + Admin listing
  */
 const contactUs = [
   // Validation middleware
@@ -42,16 +42,17 @@ const contactUs = [
 
       // Auto-reply to user
       const replyContent = `
-        <h2>Thank you for contacting Belleful! </h2>
-        <p>Hi ` + name + `,</p>
+        <h2>Thank you for contacting Belleful! 📧</h2>
+        <p>Hi ${name},</p>
         <p>We've received your message and will get back to you within 24 hours.</p>
-        <p>Best regards,<br>The Belleful Team</p>
+        <p>Best regards,<br>The Belleful Team 🍽️</p>
       `;
       await emailService.sendTemplateEmail(email, 'We Received Your Message - Belleful', replyContent);
 
       res.json({ 
         success: true, 
-        message: 'Message saved and sent successfully! We will reply soon.'
+        message: 'Message saved and sent successfully! We will reply soon.',
+        contactId: contact._id
       });
     } catch (error) {
       console.error('Contact save/email error:', error);
@@ -60,5 +61,55 @@ const contactUs = [
   }
 ];
 
-module.exports = { contactUs };
+// Get all contacts for admin (paginated, sorted newest first)
+const getAllContacts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [contacts, total] = await Promise.all([
+      Contact.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Contact.countDocuments()
+    ]);
+
+    res.json({
+      success: true,
+      data: contacts,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total,
+        limit
+      }
+    });
+  } catch (error) {
+    console.error('Get contacts error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Get single contact by ID
+const getContactById = async (req, res) => {
+  try {
+    const contact = await Contact.findById(req.params.id).lean();
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found' });
+    }
+    res.json({ success: true, data: contact });
+  } catch (error) {
+    console.error('Get contact error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { 
+  contactUs, 
+  getAllContacts, 
+  getContactById 
+};
 
