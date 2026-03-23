@@ -10,7 +10,7 @@ const path = require('path');
 
 /**
  * Belleful Food Ordering Backend - Production-Ready Server
- * Features: Auth (OTP/Google), Menu/Cart/Orders/Payments, Admin Dashboard
+ * Features: Auth (OTP/Google), Menu/Cart/Orders/Payments, Admin Dashboard, Contact Form
  * Deployment: Vercel-optimized, MongoDB Atlas
  */
 
@@ -85,7 +85,7 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
-
+app.use('/api/contact', require('./routes/contact'));
 
 // ===== 5. 404 HANDLER =====
 app.use('*', (req, res) => {

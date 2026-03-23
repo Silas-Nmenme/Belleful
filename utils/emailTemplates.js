@@ -58,7 +58,7 @@ const emailTemplates = {
   <div class="content">
     <h2>Your Google account is connected!</h2>
     <p>Thanks for joining with Google. Start exploring delicious meals right away!</p>
-    <p>No verification needed - you\'re all set!</p>
+    <p>No verification needed - you're all set!</p>
   </div>
   <div class="footer">
     <p>© 2026 Belleful. All rights reserved.</p>
@@ -68,36 +68,6 @@ const emailTemplates = {
   `,
 
   // Welcome email after verification
-  welcome: (name) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Welcome to Belleful - Google Signup!</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-    .google-badge { background: #4285f4; color: white; padding: 10px 20px; border-radius: 20px; display: inline-block; margin: 10px 0; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>Welcome to Belleful, ${name}! 🎉</h1>
-    <div class="google-badge">Signed up with Google</div>
-  </div>
-  <div class="content">
-    <h2>Your Google account is connected!</h2>
-    <p>Thanks for joining with Google. Start exploring delicious meals right away!</p>
-    <p>No verification needed - you\'re all set!</p>
-  </div>
-  <div class="footer">
-    <p>© 2026 Belleful. All rights reserved.</p>
-  </div>
-</body>
-</html>
-  `,
   welcome: (name) => `
 <!DOCTYPE html>
 <html>
@@ -124,7 +94,62 @@ const emailTemplates = {
   </div>
 </body>
 </html>
+  `,
+
+  // Contact form notification
+  contactForm: (name, email, phone, message, timestamp) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>New Contact Form - Belleful</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+    .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+    .content { background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+    .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; }
+    .info-label { font-weight: bold; color: #28a745; margin-bottom: 5px; }
+    .message-box { background: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #20c997; white-space: pre-wrap; }
+    .timestamp { color: #666; font-size: 14px; text-align: center; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📧 New Contact Form Submission</h1>
+    <p>New message from your website</p>
+  </div>
+  <div class="content">
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">👤 Name</div>
+        <strong>${name}</strong>
+      </div>
+      <div class="info-item">
+        <div class="info-label">📧 Email</div>
+        <strong>${email}</strong>
+      </div>
+      <div class="info-item">
+        <div class="info-label">📱 Phone</div>
+        <strong>${phone}</strong>
+      </div>
+    </div>
+    
+    <div class="info-item">
+      <div class="info-label">💬 Message</div>
+      <div class="message-box">${message}</div>
+    </div>
+    
+    <div class="timestamp">Submitted: ${timestamp}</div>
+  </div>
+  <div class="footer">
+    <p>© 2024 Belleful Food Ordering. All rights reserved.</p>
+  </div>
+</body>
+</html>
   `
 };
 
 module.exports = { emailTemplates };
+
