@@ -1,10 +1,10 @@
 const { body, validationResult } = require('express-validator');
+const Contact = require('../models/Contact');
 const emailService = require('../services/emailService');
 const { emailTemplates } = require('../utils/emailTemplates');
 
 /**
- * Contact Form Controller
- * Handles contact us submissions via email notification
+ * Contact Form Controller - Saves to DB + Email notification
  */
 const contactUs = [
   // Validation middleware
@@ -25,31 +25,38 @@ const contactUs = [
 
     const { name, email, phone, message } = req.body;
 
-    // Use fancy template from emailTemplates
-    const timestamp = new Date().toLocaleString();
-    const emailContent = emailTemplates.contactForm(name, email, phone, message.replace(/\n/g, '<br>'), timestamp);
+    try {
+      // Save to DB first
+      const contact = new Contact({ name, email, phone, message });
+      await contact.save();
 
-    // Use existing email service (to business/admin email or fallback)
-    const adminEmail = process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER;
-    const result = await emailService.sendTemplateEmail(
-      adminEmail,
-      'New Contact Form: ' + name,
-      emailContent
-    );
+      // Send admin email
+      const timestamp = new Date().toLocaleString();
+      const emailContent = emailTemplates.contactForm(name, email, phone, message.replace(/\n/g, '<br>'), timestamp);
+      const adminEmail = process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER;
+      const emailResult = await emailService.sendTemplateEmail(
+        adminEmail,
+        'New Contact Form: ' + name,
+        emailContent
+      );
 
-    if (result.success) {
-      // Optional: Auto-reply to user
+      // Auto-reply to user
       const replyContent = `
-        <h2>Thank you for contacting Belleful!</h2>
+        <h2>Thank you for contacting Belleful! </h2>
         <p>Hi ` + name + `,</p>
         <p>We've received your message and will get back to you within 24 hours.</p>
         <p>Best regards,<br>The Belleful Team</p>
       `;
       await emailService.sendTemplateEmail(email, 'We Received Your Message - Belleful', replyContent);
 
-      res.json({ success: true, message: "Message sent successfully! We'll reply soon." });
-    } else {
-      res.status(500).json({ success: false, message: 'Failed to send message. Please try again later.' });
+      res.json({ 
+        success: true, 
+        message: 'Message saved and sent successfully! We will reply soon.',
+        contactId: contact._id
+      });
+    } catch (error) {
+      console.error('Contact save/email error:', error);
+      res.status(500).json({ success: false, message: 'Server error. Please try again.' });
     }
   }
 ];
