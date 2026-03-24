@@ -7,7 +7,6 @@ const auth = require('../middleware/auth');
  * Cart Routes - Auth required
  */
 router.use(auth);
-
 router.get('/', cartController.getCart);
 router.post('/', cartController.addToCart);
 router.delete('/:itemId', cartController.removeFromCart);
