@@ -56,7 +56,19 @@ const orderSchema = new mongoose.Schema({
   // Delivery
   deliveryAddress: {
     type: String,
-    required: function() { return this.orderStatus !== 'cancelled'; }
+    required: function() { 
+      return this.deliveryMethod === 'delivery' && this.orderStatus !== 'cancelled'; 
+    }
+  },
+  deliveryMethod: {
+    type: String,
+    enum: ['pickup', 'delivery'],
+    required: true,
+    default: 'delivery'
+  },
+  pickupLocation: {
+    type: String,
+    default: 'Belleful Restaurant - Main Branch'
   },
   phoneNumber: String,
   // Status
