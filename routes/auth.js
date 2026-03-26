@@ -26,7 +26,7 @@ router.post('/register', registerValidation, authController.register);
 router.post('/admin-register', registerValidation, authController.registerAdmin);
 router.post('/verify-otp', [
   body('email').isEmail(),
-  body('otp').isLength({ min: 6, max: 6 }).isNumeric()
+  body('otp').trim().isLength({ min: 6, max: 6 }).withMessage('Invalid OTP code').isNumeric()
 ], authController.verifyOTP);
 
 router.post('/login', loginValidation, authController.login);

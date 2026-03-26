@@ -98,6 +98,13 @@ exports.verifyOTP = async (req, res) => {
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
     const { email, otp } = req.body;
+    console.log('DEBUG OTP SUBMIT:', {
+      email: email.toLowerCase().trim(),
+      receivedOtp: otp,
+      receivedType: typeof otp,
+      receivedLength: otp ? otp.length : 'null',
+      receivedTrimmed: otp ? otp.trim() : 'null'
+    });
     const user = await User.findOne({ email: email.toLowerCase().trim() })
       .select('+otp +otpExpires +isVerified');
 
