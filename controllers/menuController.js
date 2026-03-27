@@ -10,9 +10,10 @@ const { deleteImage, uploadImage } = require('../config/cloudinary');
 // ===== GET ALL ITEMS =====
 exports.getMenu = async (req, res) => {
   try {
-    const { category, available, search, page = 1, limit = 12 } = req.query;
+const { category, available, search, page = 1, limit = 100 } = req.query;
     
-    const query = { available: true, stock: { $gt: 0 } };
+let query = {};
+    if (available === 'true') query.available = true;
     if (category) query.category = category;
     if (search) query.name = { $regex: search, $options: 'i' };
 
