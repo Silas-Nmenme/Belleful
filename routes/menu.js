@@ -3,10 +3,7 @@ const router = express.Router();
 const menuController = require('../controllers/menuController');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
-// Direct Cloudinary uploads
-const { getUploadUrl } = require('../config/cloudinary');
-const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
+const { upload, getUploadUrl } = require('../config/cloudinary');
 
 /**
  * Menu Routes - Public browse, Admin CRUD

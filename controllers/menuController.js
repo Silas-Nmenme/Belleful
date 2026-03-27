@@ -1,18 +1,17 @@
 const MenuItem = require('../models/MenuItem');
-const { deleteImage, uploadImage } = require('../config/cloudinary');
-
+const { deleteImage, extractPublicId } = require('../config/cloudinary');
 
 /**
- * Menu Controller - Admin CRUD with validation & inventory
+ * Menu Controller - FIXED to match Sample/Car Rental pattern
+ * Multer → req.file.path → save URL directly
  */
-
 
 // ===== GET ALL ITEMS =====
 exports.getMenu = async (req, res) => {
   try {
-const { category, available, search, page = 1, limit = 100 } = req.query;
+    const { category, available, search, page = 1, limit = 100 } = req.query;
     
-let query = {};
+    let query = {};
     if (available === 'true') query.available = true;
     if (category) query.category = category;
     if (search) query.name = { $regex: search, $options: 'i' };
@@ -24,7 +23,6 @@ let query = {};
       .lean();
 
     const total = await MenuItem.countDocuments(query);
-
 
     res.json({
       success: true,
@@ -47,37 +45,20 @@ exports.getMenuItem = async (req, res) => {
   }
 };
 
-
-// ===== MATCH MODEL VALIDATION =====
+// ===== VALIDATION HELPER =====
 const isValidationError = (error) => error.name === 'ValidationError';
 
-
-// ===== CREATE ITEM (Admin) =====
-/**
- * Create new menu item with validation & inventory setup
- */
+// ===== CREATE ITEM (matches Sample addCar) =====
 exports.createMenuItem = async (req, res) => {
   try {
-    let itemData = {
+    const itemData = {
       ...req.body,
       stock: req.body.stock ?? 50,
-      available: (req.body.stock ?? 50) > 0
+      available: (req.body.stock ?? 50) > 0,
+      image: req.file?.path || '/asset/placeholder-food.jpg'  // ← FIXED: use multer file.path
     };
     
-    if (req.file) {
-      try {
-        const result = await uploadImage('menu');
-        itemData.image = result.secure_url;
-      } catch (uploadError) {
-        console.error('Image upload error:', uploadError);
-        itemData.image = '/asset/placeholder-food.jpg'; // Use placeholder
-      }
-    } else {
-      itemData.image = '/asset/placeholder-food.jpg'; // Default no image
-    }
-    
     const item = await MenuItem.create(itemData);
-    
     const populated = await MenuItem.findById(item._id); // For virtuals
     
     res.status(201).json({ 
@@ -94,12 +75,7 @@ exports.createMenuItem = async (req, res) => {
   }
 };
 
-
-
-// ===== UPDATE ITEM (Admin) =====
-/**
- * Update menu item with validation & image handling
- */
+// ===== UPDATE ITEM =====
 exports.updateMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
@@ -107,25 +83,28 @@ exports.updateMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
-    // Handle image change first
-    let imageDeleted = false;
-    if (req.body.image && req.body.image !== item.image && item.image) {
-      try {
-        const publicIdMatch = item.image.match(/\/([^/]+)\.(jpg|jpeg|png|webp)$/i);
-        if (publicIdMatch) {
-          await deleteImage(publicIdMatch[1]);
-          imageDeleted = true;
+    // Handle new image from multer
+    if (req.file) {
+      // Delete old image
+      if (item.image) {
+        const oldPublicId = extractPublicId(item.image);
+        if (oldPublicId) {
+          try {
+            await deleteImage(oldPublicId);
+          } catch (err) {
+            console.warn('Failed to delete old image:', err.message);
+          }
         }
-      } catch (imgErr) {
-        console.warn('Image deletion failed:', imgErr.message);
       }
+      req.body.image = req.file.path;  // Use new uploaded image
     }
 
-    // Update with model validation
+    // Update (body.image used if no file, or file.path set above)
     const updateData = {
       ...req.body,
       available: (req.body.stock ?? item.stock) > 0
     };
+    
     const updated = await MenuItem.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -146,12 +125,7 @@ exports.updateMenuItem = async (req, res) => {
   }
 };
 
-
-
-// ===== DELETE ITEM (Admin) =====
-/**
- * Delete menu item & cleanup image
- */
+// ===== DELETE ITEM =====
 exports.deleteMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
@@ -159,10 +133,11 @@ exports.deleteMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
+    // Delete image
     if (item.image) {
-      const publicIdMatch = item.image.match(/\/([^/]+)\.(jpg|jpeg|png|webp)$/i);
-      if (publicIdMatch) {
-        await deleteImage(publicIdMatch[1]);
+      const publicId = extractPublicId(item.image);
+      if (publicId) {
+        await deleteImage(publicId);
       }
     }
 
@@ -175,7 +150,4 @@ exports.deleteMenuItem = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error deleting menu item' });
   }
 };
-
-
-
 
