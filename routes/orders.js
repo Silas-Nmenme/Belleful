@@ -17,6 +17,7 @@ router.get('/my-orders', orderController.getMyOrders);
 
 // Admin routes
 router.get('/', isAdmin, orderController.getAllOrders);
+router.get('/admin', isAdmin, orderController.getAllOrders);
 router.patch('/:id/status', isAdmin, orderController.updateStatus);
 
 module.exports = router;
