@@ -16,10 +16,15 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get('/', menuController.getMenu);
 router.get('/:id', menuController.getMenuItem);
 
-// Upload URL endpoint (public)
-router.get('/upload-url', (req, res) => {
+// Upload URL endpoint (admin protected + auth headers)
+router.get('/upload-url', auth, (req, res) => {
   const { folder = 'menu' } = req.query;
-  res.json(getUploadUrl(folder));
+  try {
+    res.json(getUploadUrl(folder));
+  } catch (error) {
+    console.error('Upload URL error:', error);
+    res.status(500).json({ error: 'Cloudinary config missing' });
+  }
 });
 
 // Admin protected
