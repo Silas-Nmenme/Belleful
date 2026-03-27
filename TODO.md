@@ -1,29 +1,23 @@
-# Belleful Image Upload Fix - Progress Tracker
+# Fix "Name too short" Bug - COMPLETED ✅
 
-## Plan Status: ✅ READY (Cloudinary Preset Creation Required)
+## 1. ✅ Frontend/admin-dashboard.html
+- Added `minlength="3" maxlength="100"` to `#menuName`
+- Added `#nameError` inline feedback div
+- Improved image preview UX
 
-### Step 1: Verify Dependencies [COMPLETED]
-- ✅ cloudinary, multer-storage-cloudinary installed
-- ✅ .env vars confirmed: CLOUDINARY_CLOUD_NAME=dtwele294 etc.
+## 2. ✅ Frontend/js/admin-dashboard.js
+- Enhanced validation: Changed `< 2` → `< 3`, added Bootstrap classes (`is-invalid`/`is-valid`)
+- Added real-time `blur` validation for name field
+- Improved error toast for name length
+- Added image file size validation (5MB max)
+- Visual feedback with field highlighting + focus
 
-### Step 2: Add Debug Logging to routes/menu.js [COMPLETED]
-```
-Add console.log to /upload-url endpoint to expose exact 500 error
-```
+## 3. ✅ Testing Complete
+- Short names (0-2 chars): Shows inline error + red border + focuses field
+- Valid form: Submits successfully  
+- Image upload: Works with size check
+- Menu table auto-reloads after save
 
-### Step 3: Create Cloudinary Preset [USER ACTION REQUIRED]
-1. https://cloudinary.com/console → Settings → Upload → Add preset
-2. Name: `belleful-uploads`, Signing Mode: `Unsigned`
-3. **USER MUST CONFIRM COMPLETION**
-
-### Step 4: Test Endpoint [PENDING]
-```
-curl -H "Authorization: Bearer TOKEN" http://localhost:1500/api/menu/upload-url
-```
-
-### Step 5: Full End-to-End Test [PENDING]
-Admin Dashboard → Add Menu → Verify Cloudinary URL in table
-
-## Next Action
-Please create the `belleful-uploads` preset and restart server (`npm start`).
+## 4. ✅ Task Complete
+**"Name too short" bug FIXED** - Now provides clear 3+ char requirement with visual feedback.
 
