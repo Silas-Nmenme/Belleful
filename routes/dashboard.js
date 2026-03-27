@@ -15,11 +15,7 @@ router.get('/user/orders', require('../controllers/orderController').getMyOrders
 router.use(isAdmin);
 router.get('/admin/stats', dashboardController.getAdminStats);
 router.get('/admin/top-items', dashboardController.getTopItems);
-router.get('/admin/users', async (req, res) => {
-  // List users for admin
-  const users = await require('../models/User').find({}).select('-password');
-  res.json({ success: true, data: users });
-});
+router.get('/admin/users', dashboardController.getAdminUsers);
 
 module.exports = router;
 

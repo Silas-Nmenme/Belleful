@@ -98,3 +98,69 @@ exports.getTopItems = async (req, res) => {
   }
 };
 
+exports.getAdminUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const search = req.query.search || '';
+
+    const matchQuery = search 
+      ? {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+          ]
+        }
+      : {};
+
+    const [users, total] = await Promise.all([
+      User.aggregate([
+        { $match: matchQuery },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: '_id',
+            foreignField: 'user',
+            as: 'orders',
+            pipeline: [{ $match: { orderStatus: { $ne: 'cancelled' } } }]
+          }
+        },
+        {
+          $addFields: {
+            totalOrders: { $size: '$orders' }
+          }
+        },
+        {
+          $project: {
+            password: 0,
+            otp: 0,
+            otpExpires: 0,
+            resetPasswordToken: 0,
+            resetPasswordExpire: 0,
+            orders: 0
+          }
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      ]),
+      User.countDocuments(matchQuery)
+    ]);
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        current: page,
+        pages: Math.ceil(total / limit),
+        total,
+        limit
+      }
+    });
+  } catch (error) {
+    console.error('Get admin users error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
