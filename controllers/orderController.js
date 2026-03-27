@@ -93,57 +93,38 @@ exports.getMyOrders = async (req, res) => {
       return res.status(401).json({ success: false, message: 'User ID missing' });
     }
 
-    const orders = await Order.find({ user: req.user._id })
-      .populate('items.menuItem', 'name image')
-      .sort({ createdAt: -1 })
-      .limit(20);
-
-    console.log(`Found ${orders.length} orders`);
+    let orders;
+    try {
+      orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user._id) })
+        .populate('items.menuItem', 'name image')
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+      console.log(`Found ${orders?.length || 0} orders`);
+    } catch (populateErr) {
+      console.error('Populate failed:', populateErr);
+      orders = [];
+    }
 
     // Defensive data cleaning
     // Ultra-safe serialization - handle ALL potential undefined numerics
-    const safeOrders = orders.map(order => {
-      const orderObj = order.toObject();
-      
-      // Ensure totalAmount is safe
-      orderObj.totalAmount = Number(orderObj.totalAmount) || 0;
-      
-      // Safe items processing
-      orderObj.items = (orderObj.items || []).map(item => {
-        const itemObj = item.toObject ? item.toObject() : item;
-        console.log('Processing item:', { 
-          name: itemObj.name, 
-          price: itemObj.price, 
-          menuItem: !!itemObj.menuItem,
-          hasToFixed: typeof itemObj.price === 'object' && itemObj.price?.toFixed
-        });
-        
-        // Comprehensive price safety
-        let safePrice = 0;
-        if (typeof itemObj.price === 'number') {
-          safePrice = itemObj.price;
-        } else if (typeof itemObj.price === 'string') {
-          safePrice = parseFloat(itemObj.price) || 0;
-        } else if (itemObj.price && typeof itemObj.price === 'object' && itemObj.price.toFixed) {
-          safePrice = parseFloat(itemObj.price.toFixed(2)) || 0;
-        }
-        
-        return {
-          ...itemObj,
-          price: safePrice,
-          totalAmount: Number(itemObj.totalAmount) || 0,
-          menuItem: itemObj.menuItem || null
-        };
-      });
-      
-      return orderObj;
-    });
+    // Since lean(), no toObject needed - already plain
+    const safeOrders = (orders || []).map(order => ({
+      ...order,
+      totalAmount: Number(order.totalAmount) || 0,
+      items: (order.items || []).map(item => ({
+        ...item,
+        price: Number(item.price) || 0,
+        totalAmount: Number(item.totalAmount) || 0,
+        menuItem: item.menuItem || null
+      }))
+    }));
 
     console.log(`✅ Orders API completed: ${safeOrders.length} safe orders`);
     res.json({ success: true, data: safeOrders });
   } catch (error) {
     console.error('getMyOrders error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Unable to load orders at this time' });
   }
 };
 
