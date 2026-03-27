@@ -87,13 +87,40 @@ exports.checkout = async (req, res) => {
 // ===== GET USER ORDERS =====
 exports.getMyOrders = async (req, res) => {
   try {
+    console.log('getMyOrders called for user:', req.user?._id);
+    
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: 'User ID missing' });
+    }
+
     const orders = await Order.find({ user: req.user._id })
       .populate('items.menuItem', 'name image')
       .sort({ createdAt: -1 })
       .limit(20);
 
-    res.json({ success: true, data: orders });
+    console.log(`Found ${orders.length} orders`);
+
+    // Defensive data cleaning
+    const safeOrders = orders.map(order => ({
+      ...order.toObject(),
+      items: order.items.map(item => {
+        console.log('Processing item:', { name: item.name, price: item.price, menuItem: !!item.menuItem });
+        
+        // Fix any undefined prices
+        const safePrice = item.price || 0;
+        
+        return {
+          ...item.toObject(),
+          price: safePrice,
+          menuItem: item.menuItem || null
+        };
+      })
+    }));
+
+    console.log('Orders API completed successfully');
+    res.json({ success: true, data: safeOrders });
   } catch (error) {
+    console.error('getMyOrders error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
