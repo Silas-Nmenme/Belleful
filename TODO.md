@@ -6,7 +6,7 @@
 - ✅ cloudinary, multer-storage-cloudinary installed
 - ✅ .env vars confirmed: CLOUDINARY_CLOUD_NAME=dtwele294 etc.
 
-### Step 2: Add Debug Logging to routes/menu.js [PENDING]
+### Step 2: Add Debug Logging to routes/menu.js [COMPLETED]
 ```
 Add console.log to /upload-url endpoint to expose exact 500 error
 ```
