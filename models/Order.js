@@ -84,8 +84,23 @@ const orderSchema = new mongoose.Schema({
   bankName: String
 }, {
   timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toJSON: { virtuals: true, transform: function(doc, ret) {
+    // Safe numeric transforms - prevent toFixed() errors
+    ret.totalAmount = Number(ret.totalAmount) || 0;
+    ret.items = (ret.items || []).map(item => ({
+      ...item,
+      price: Number(item.price) || 0
+    }));
+    return ret;
+  }},
+  toObject: { virtuals: true, transform: function(doc, ret) {
+    ret.totalAmount = Number(ret.totalAmount) || 0;
+    ret.items = (ret.items || []).map(item => ({
+      ...item,
+      price: Number(item.price) || 0
+    }));
+    return ret;
+  }}
 });
 
 // Indexes for queries (compound covers user queries)

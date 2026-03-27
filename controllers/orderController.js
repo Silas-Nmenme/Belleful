@@ -101,23 +101,45 @@ exports.getMyOrders = async (req, res) => {
     console.log(`Found ${orders.length} orders`);
 
     // Defensive data cleaning
-    const safeOrders = orders.map(order => ({
-      ...order.toObject(),
-      items: order.items.map(item => {
-        console.log('Processing item:', { name: item.name, price: item.price, menuItem: !!item.menuItem });
+    // Ultra-safe serialization - handle ALL potential undefined numerics
+    const safeOrders = orders.map(order => {
+      const orderObj = order.toObject();
+      
+      // Ensure totalAmount is safe
+      orderObj.totalAmount = Number(orderObj.totalAmount) || 0;
+      
+      // Safe items processing
+      orderObj.items = (orderObj.items || []).map(item => {
+        const itemObj = item.toObject ? item.toObject() : item;
+        console.log('Processing item:', { 
+          name: itemObj.name, 
+          price: itemObj.price, 
+          menuItem: !!itemObj.menuItem,
+          hasToFixed: typeof itemObj.price === 'object' && itemObj.price?.toFixed
+        });
         
-        // Fix any undefined prices
-        const safePrice = item.price || 0;
+        // Comprehensive price safety
+        let safePrice = 0;
+        if (typeof itemObj.price === 'number') {
+          safePrice = itemObj.price;
+        } else if (typeof itemObj.price === 'string') {
+          safePrice = parseFloat(itemObj.price) || 0;
+        } else if (itemObj.price && typeof itemObj.price === 'object' && itemObj.price.toFixed) {
+          safePrice = parseFloat(itemObj.price.toFixed(2)) || 0;
+        }
         
         return {
-          ...item.toObject(),
+          ...itemObj,
           price: safePrice,
-          menuItem: item.menuItem || null
+          totalAmount: Number(itemObj.totalAmount) || 0,
+          menuItem: itemObj.menuItem || null
         };
-      })
-    }));
+      });
+      
+      return orderObj;
+    });
 
-    console.log('Orders API completed successfully');
+    console.log(`✅ Orders API completed: ${safeOrders.length} safe orders`);
     res.json({ success: true, data: safeOrders });
   } catch (error) {
     console.error('getMyOrders error:', error);
