@@ -4,6 +4,16 @@ const cloudinary = require('cloudinary').v2;
  * Cloudinary Configuration & Upload Helper
  * Direct frontend uploads + server delete
  */
+console.log('☁️ Cloudinary config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+  api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+  api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+});
+
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  console.warn('⚠️  CLOUDINARY_CLOUD_NAME missing - uploads will fail');
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,

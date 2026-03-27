@@ -1,16 +1,47 @@
-# Admin Dashboard Bug Fix Progress
+# Fix Admin Image Upload 500 Error - Approved Plan
 
-## Current Status: Step 1 IN PROGRESS
+## Completed Steps
+- [x] Gathered diagnosis from file analysis and search
+- [x] User confirmed plan + provided Cloudinary .env (creds valid)
 
-**Task:** Fix SyntaxError and ReferenceError in admin-dashboard
+## Steps to Complete
 
-1. ✅ **DONE** Create TODO.md  
-2. ✅ **DONE** Fix syntax error in admin-dashboard.js (line 582 'catch') + ReferenceError
-3. ☐ Test admin dashboard loads without console errors  
-4. ☐ Verify all sections load (stats, orders, users, menu, contacts) 
-5. ☐ Test menu CRUD (add/edit/delete with image upload)
-6. ☐ Backend API verification if needed
-7. ☐ **COMPLETE** Final testing + attempt_completion
+### 1. **Server Restarted** ✓ COMPLETE
+✅ Server running port 1500, MongoDB connected, Email ready
 
-**Files to Edit:** `Frontend/js/admin-dashboard.js`
+
+### 2. **Enhanced Logging** ✓ COMPLETE
+- Added detailed console.log for /upload-url (user/role/cloudinary)
+- Server logs now show exact failure (preset/auth/env)
+
+**🚀 LIVE TEST IN PROGRESS** 
+1. Login admin → Admin Dashboard → Add menu + image
+2. **Copy server logs** here (🔍/💥 lines)
+3. Check Network tab → /menu/upload-url status/response
+
+
+### 3. **Verify/Install Cloudinary Preset**
+- Login Cloudinary dashboard (dtwele294)
+- Settings → Upload → Unsigned presets → Add 'belleful-uploads' (allow *.*)
+
+### 4. **Restart Server**
+```
+npm run dev
+```
+
+### 5. **Test Admin Role & Full Flow**
+- Login admin → Network tab → Add menu with image → Check console
+
+### 6. **Edge Case Fixes**
+- Add server health check for Cloudinary
+- Fallback image handling
+
+## Commands Ready
+```
+# Test endpoint (get token first from login)
+curl -H "Authorization: Bearer TOKEN" http://localhost:1500/api/menu/upload-url?folder=menu
+
+# Restart
+npm run dev
+```
 

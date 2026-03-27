@@ -19,11 +19,31 @@ router.get('/:id', menuController.getMenuItem);
 // Upload URL endpoint (admin protected + auth headers)
 router.get('/upload-url', auth, (req, res) => {
   const { folder = 'menu' } = req.query;
+  const user = req.user || {};
+  
+  console.log('🔍 /upload-url called:', { 
+    folder, 
+    userId: user.id, 
+    userRole: user.role, 
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING' 
+  });
+  
   try {
-    res.json(getUploadUrl(folder));
+    const config = getUploadUrl(folder);
+    console.log('✅ Upload config generated:', { url: config.url, hasFields: !!config.fields });
+    res.json(config);
   } catch (error) {
-    console.error('Upload URL error:', error);
-    res.status(500).json({ error: 'Cloudinary config missing' });
+    console.error('💥 Upload URL ERROR:', { 
+      message: error.message, 
+      stack: error.stack,
+      folder,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME 
+    });
+    res.status(500).json({ 
+      error: 'Upload config failed', 
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Server error',
+      missingCloudinary: !process.env.CLOUDINARY_CLOUD_NAME
+    });
   }
 });
 
