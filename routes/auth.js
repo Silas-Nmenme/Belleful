@@ -40,5 +40,14 @@ router.get('/google/callback', authController.googleCallback);
 // ===== PROTECTED =====
 router.get('/profile', auth, authController.getProfile);
 
+// Update profile validation
+const updateValidation = [
+  body('name').optional().trim().isLength({ min: 2, max: 50 }).escape().withMessage('Name must be 2-50 chars')
+];
+
+// PUT /profile (multipart for avatar)
+router.put('/profile', auth, updateValidation, authController.upload.single('avatar'), authController.updateProfile);
+
 module.exports = router;
+
 

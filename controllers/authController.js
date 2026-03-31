@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const { sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
 const { OAuth2Client } = require('google-auth-library');
 const { cloudinary } = require('../config/cloudinary');
+const emailTemplates = require('../utils/emailTemplates');
+
 
 /**
  * Auth Controller - OTP, Google OAuth, Reset Password
@@ -238,4 +240,78 @@ exports.getProfile = async (req, res) => {
     }
   });
 };
+
+// ===== 10. UPDATE PROFILE =====
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'belleful/avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }]
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only images allowed'), false);
+  }
+});
+
+// Export upload middleware
+exports.upload = upload;
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const updates = { name: req.body.name?.trim() || user.name };
+
+    // Handle avatar
+    if (req.file) {
+      // Delete old avatar if exists
+      if (user.avatar) {
+        const publicId = user.avatar.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`belleful/avatars/${publicId}`);
+      }
+      updates.avatar = req.file.path;
+    }
+
+    // Apply updates
+    Object.assign(user, updates);
+    await user.save();
+
+    // Re-fetch populated
+    const updatedUser = await User.findById(user._id).select('-password');
+
+    res.json({
+      success: true,
+      message: 'Profile updated',
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 
