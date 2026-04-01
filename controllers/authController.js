@@ -142,6 +142,35 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials or unverified email' });
     }
 
+    // Send login notification email
+    const loginTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login Successful - Belleful</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6 text-center">
+        <i class="fas fa-sign-in-alt fa-4x text-success mb-4"></i>
+        <h2 class="text-success mb-4">Successful Login</h2>
+        <p>Hi <strong>${user.name}</strong>,</p>
+        <p>You have successfully logged into your Belleful account.</p>
+        <p><small class="text-muted">Logged in at ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' })}</small></p>
+        <hr class="my-4">
+        <p>If this wasn't you, <a href="${process.env.FRONTEND_URL}/change-password">secure your account</a>.</p>
+        <div class="mt-4">
+          <a href="${process.env.FRONTEND_URL}" class="btn btn-primary">Continue Shopping</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+    await sendTemplateEmail(user.email, 'Login Successful - Belleful', loginTemplate);
+
     sendToken(user, 200, res);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
