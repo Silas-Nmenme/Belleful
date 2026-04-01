@@ -55,19 +55,51 @@ exports.getCart = async (req, res) => {
       // Don't create empty cart - return clean empty state
       return res.json({ 
         success: true, 
-        data: { items: [], totalAmount: 0, itemCount: 0 } 
+        data: { 
+          items: [], 
+          deliveryType: 'pickup',
+          subtotal: 0,
+          deliveryFee: 0,
+          serviceFee: 500,
+          vatRate: 0.015,
+          grandTotal: 500,
+          totalAmount: 500,
+          itemCount: 0,
+          breakdown: {
+            subtotal: 0,
+            deliveryFee: 0,
+            serviceFee: 500,
+            vat: 0,
+            grandTotal: 500
+          }
+        } 
       });
     }
 
-    // Ensure total is sync'd
-    if (cart.isModified('items') || cart.totalAmount === 0) {
+    // Ensure totals are sync'd (triggers pre-save)
+    if (cart.isModified('items') || cart.grandTotal === 0) {
       await cart.save();
     }
 
-    // Add computed itemCount for frontend
-    cart.itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    // Compute itemCount and breakdown
+    const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    const vatAmount = cart.subtotal * cart.vatRate;
+    const breakdown = {
+      subtotal: cart.subtotal,
+      deliveryFee: cart.deliveryFee,
+      serviceFee: cart.serviceFee,
+      vat: vatAmount,
+      grandTotal: cart.grandTotal
+    };
 
-    res.json({ success: true, data: cart });
+    res.json({ 
+      success: true, 
+      data: { 
+        ...cart.toObject(),
+        itemCount,
+        breakdown 
+      } 
+    });
   } catch (error) {
     handleCartError(res, error, 'getCart');
   }
@@ -106,13 +138,16 @@ exports.addToCart = async (req, res) => {
   let cart;
   
   try {
-    const { menuItemId, quantity = 1 } = req.body;
+    const { menuItemId, quantity = 1, deliveryType } = req.body;
     
     session.startTransaction();
     
     cart = await Cart.findOne({ user: req.user._id });
     if (!cart) {
       cart = new Cart({ user: req.user._id });
+    }
+    if (deliveryType && ['pickup', 'delivery'].includes(deliveryType)) {
+      cart.deliveryType = deliveryType;
     }
 
     await upsertCartItem(cart, menuItemId, quantity, session);
@@ -174,7 +209,7 @@ exports.updateQuantity = async (req, res) => {
   const session = await Cart.startSession();
   
   try {
-    const { quantity } = req.body;
+    const { quantity, deliveryType } = req.body;
     const menuItemId = req.params.itemId;
     
     session.startTransaction();
@@ -185,6 +220,9 @@ exports.updateQuantity = async (req, res) => {
         success: false, 
         message: 'Cart not found' 
       });
+    }
+    if (deliveryType && ['pickup', 'delivery'].includes(deliveryType)) {
+      cart.deliveryType = deliveryType;
     }
 
     const itemIndex = cart.items.findIndex(item => 

@@ -31,6 +31,7 @@ router.get('/', cartController.getCart);
 router.post('/',
   body('menuItemId').isMongoId().withMessage('Valid menuItem ID required'),
   body('quantity').isInt({ min: 1, max: 99 }).withMessage('Quantity must be 1-99'),
+  body('deliveryType').optional().isIn(['pickup', 'delivery']).withMessage('Delivery type must be pickup or delivery'),
   validate,
   cartController.addToCart
 );
@@ -46,6 +47,7 @@ router.delete('/:itemId',
 router.patch('/:itemId',
   param('itemId').isMongoId().withMessage('Valid item ID required'),
   body('quantity').isInt({ min: 1, max: 99 }).withMessage('Quantity must be 1-99'),
+  body('deliveryType').optional().isIn(['pickup', 'delivery']).withMessage('Delivery type must be pickup or delivery'),
   validate,
   cartController.updateQuantity
 );

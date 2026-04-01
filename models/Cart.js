@@ -36,36 +36,62 @@ const cartSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    unique: true // One cart per user
+    required: true
+  },
+  deliveryType: {
+    type: String,
+    enum: ['pickup', 'delivery'],
+    default: 'pickup'
   },
   items: [cartItemSchema],
+  subtotal: {
+    type: Number,
+    default: 0
+  },
+  deliveryFee: {
+    type: Number,
+    default: 0
+  },
+  serviceFee: {
+    type: Number,
+    default: 500
+  },
+  vatRate: {
+    type: Number,
+    default: 0.015
+  },
+  grandTotal: {
+    type: Number,
+    default: 0
+  },
   totalAmount: {
     type: Number,
     default: 0
   }
 }, {
   timestamps: true,
-  toJSON: { virtuals: true }
+  toJSON: { virtuals: true },
+  indexes: [
+    { key: { user: 1 }, unique: true },
+    { key: { 'items.menuItem': 1 } }
+  ]
 });
 
-// Indexes
 
-// Auto-calculate total
+
+// Auto-calculate totals including fees and VAT
 cartSchema.pre('save', function(next) {
-  this.totalAmount = this.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  this.deliveryFee = this.deliveryType === 'delivery' ? 2000 : 0;
+  this.serviceFee = 500;
+  this.vatRate = 0.015;
+  const vatAmount = this.subtotal * this.vatRate;
+  this.grandTotal = this.subtotal + this.deliveryFee + this.serviceFee + vatAmount;
+  this.totalAmount = this.grandTotal; // Keep totalAmount for backwards compat
   next();
 });
 
-// Indexes for performance
-cartSchema.index({ user: 1 });
-cartSchema.index({ 'items.menuItem': 1 });
-
-// Auto-calculate total
-cartSchema.pre('save', function(next) {
-  this.totalAmount = this.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  next();
-});
+// Indexes handled in schema options
 
 module.exports = mongoose.model('Cart', cartSchema);
 
