@@ -124,7 +124,7 @@ exports.verifyOTP = async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
-    await sendWelcomeEmail(user.email, user.name);
+    await sendWelcomeEmail(user.email, user.name, emailTemplates.welcome(user.name));
     sendToken(user, 200, res);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -193,7 +193,7 @@ exports.forgotPassword = async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${user.email}`;
     
     const html = emailTemplates.passwordReset(user.name, resetUrl);
-    await sendTemplateEmail(user.email, 'Password Reset - Belleful', html);
+    await sendTemplateEmail(user.email, 'Password Reset - Belleful', html, emailTemplates.passwordReset(user.name, resetUrl));
 
     res.json({ success: true, message: 'Reset email sent' });
   } catch (error) {

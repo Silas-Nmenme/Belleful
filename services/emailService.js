@@ -78,30 +78,22 @@ const sendOTPEmail = async (email, name, otp) => {
 /**
  * Send Welcome Email
  */
-const sendWelcomeEmail = async (email, name) => {
+const sendWelcomeEmail = async (email, name, htmlTemplate) => {
   if (!transporter) return { success: false };
-
-  const html = `
-    <div style="font-family: Arial; max-width: 600px;">
-      <h1 style="color: #28a745;">Welcome to Belleful, ${name}!</h1>
-      <p>Thanks for joining. Browse menu, add to cart, order food!</p>
-      <a href="${process.env.FRONTEND_URL}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Start Ordering</a>
-    </div>`;
-
-  return sendTemplateEmail(email, 'Welcome to Belleful!', html);
+  return sendTemplateEmail(email, `Welcome to Belleful, ${name}!`, htmlTemplate);
 };
 
 /**
  * Generic Template Email
  */
-const sendTemplateEmail = async (email, subject, html) => {
+const sendTemplateEmail = async (email, subject, html, htmlTemplate) => {
   if (!transporter) return { success: false };
 
   const mailOptions = {
     from: `"Belleful" <${process.env.MAIL_USER}>`,
     to: email,
     subject,
-    html
+    html: htmlTemplate || html
   };
 
   try {
