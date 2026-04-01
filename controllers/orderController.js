@@ -28,13 +28,11 @@ exports.checkout = async (req, res) => {
       }
     }
 
-    // Validate delivery method
-    const { deliveryMethod, deliveryAddress, phoneNumber, bankAccount, bankName } = req.body;
-    if (!deliveryMethod || !['pickup', 'delivery'].includes(deliveryMethod)) {
-      return res.status(400).json({ success: false, message: 'deliveryMethod must be "pickup" or "delivery"' });
-    }
+    // Validate delivery method (sync with cart)
+    const { deliveryAddress, phoneNumber, bankAccount, bankName } = req.body;
+    const deliveryMethod = cart.deliveryType;  // Use cart's deliveryType ('pickup'|'delivery')
     if (deliveryMethod === 'delivery' && !deliveryAddress) {
-      return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery' });
+      return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery orders' });
     }
     if (!phoneNumber) {
       return res.status(400).json({ success: false, message: 'phoneNumber required' });
@@ -47,18 +45,18 @@ exports.checkout = async (req, res) => {
       user: req.user._id,
       items: cart.items.map(item => ({
         menuItem: item.menuItem._id,
-        name: item.menuItem.name,
-        price: item.price,
+        name: item.name,  // Use snapshot name
+        price: item.price,  // Use snapshot price
         quantity: item.quantity
       })),
-      totalAmount: cart.totalAmount,
-      deliveryMethod,
+      totalAmount: cart.grandTotal,  // Use new grandTotal (includes fees/VAT)
+      deliveryMethod: cart.deliveryType,
       phoneNumber,
       bankAccount,
       bankName
     };
 
-    if (deliveryMethod === 'delivery') {
+    if (cart.deliveryType === 'delivery') {
       orderData.deliveryAddress = deliveryAddress;
     }
 
