@@ -29,8 +29,8 @@ exports.uploadReceipt = async (req, res) => {
     order.receiptImage = receiptUrl;
     order.paymentReference = `rcpt-${Date.now()}`;
     
-    // Advance to payment verified (awaiting final admin approval)
-    order.orderStatus = 'payment_verified';
+    // Advance to preparing (payment verified, ready for kitchen)
+    order.orderStatus = 'preparing';
 
     await order.save();
 
