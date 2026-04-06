@@ -1,5 +1,4 @@
 const Order = require('../models/Order');
-const orderController = require('./orderController');
 
 /**
  * Payment Controller - Receipt Upload & Verification
@@ -7,7 +6,6 @@ const orderController = require('./orderController');
  */
 
 // No multer - direct Cloudinary
-
 
 // ===== UPLOAD RECEIPT =====
 exports.uploadReceipt = async (req, res) => {
@@ -17,10 +15,10 @@ exports.uploadReceipt = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No valid receipt URL provided' });
     }
 
-    // Update latest pending order
+    // Update latest pending approval order
     const order = await Order.findOne({ 
       user: req.user._id, 
-      paymentStatus: 'pending' 
+      orderStatus: 'pending_approval' 
     }).sort({ createdAt: -1 });
 
     if (!order) {
@@ -30,15 +28,17 @@ exports.uploadReceipt = async (req, res) => {
     order.paymentStatus = 'verified';
     order.receiptImage = receiptUrl;
     order.paymentReference = `rcpt-${Date.now()}`;
+    
+    // Advance to payment verified (awaiting final admin approval)
+    order.orderStatus = 'payment_verified';
 
-    // Advance to pending admin approval + notify
-    await orderController.approvePendingPayment(order._id);
+    await order.save();
 
     res.json({ 
       success: true, 
       receiptUrl,
       orderId: order._id,
-      message: 'Receipt uploaded. Awaiting admin approval.'
+      message: 'Receipt uploaded & verified! Awaiting admin approval.'
     });
 
   } catch (error) {
@@ -58,5 +58,4 @@ module.exports = {
   uploadReceipt: exports.uploadReceipt,
   paymentWebhook: exports.paymentWebhook
 };
-
 
