@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Belleful</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/user-dashboard.css">
+</head>
+<body>
+    <!-- Top Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-gradient-warm shadow-lg">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+<button class="navbar-toggler me-3 mobile-menu-toggle" type="button" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+                    <i class="fas fa-bars text-white fs-4"></i>
+                </button>
+                <a class="navbar-brand fw-bold" href="user-dashboard.html">
+                    <i class="fas fa-utensils me-2"></i>Belleful
+                </a>
+            </div>
+            
+<div class="navbar-nav ms-auto align-items-center">
+                <a class="nav-link position-relative" href="cart.html">
+                    <i class="fas fa-shopping-cart fs-4"></i>
+                    <span class="badge bg-danger cart-badge cart-count hidden" data-count="0">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Persistent Sidebar -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="userSidebar">
+        <div class="sidebar-content">
+<div id="sidebarProfile" class="profile-card">
+                <div class="p-4 text-center">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 70px; height: 70px; font-size: 1.2rem; font-weight: bold;">SO</div>
+                    <h6 class="fw-bold mb-1">Silas Onyekachi</h6>
+                    <p class="text-muted small mb-2">silas@example.com</p>
+                    <span class="badge bg-primary">Member</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav p-0">
+                <a href="#dashboard" class="nav-link active" onclick="setActiveNav('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="#orders" class="nav-link" onclick="setActiveNav('orders')">
+                    <i class="fas fa-shopping-bag"></i> Orders
+                </a>
+                <a href="#menu" class="nav-link" onclick="setActiveNav('menu')">
+                    <i class="fas fa-utensils"></i> Menu
+                </a>
+                <a href="cart.html" class="nav-link" onclick="closeSidebar()">
+                    <i class="fas fa-shopping-cart"></i> Cart
+                </a>
+                <a href="#" class="nav-link" onclick="closeSidebar()">
+                    <i class="fas fa-heart"></i> Favorites
+                </a>
+
+                <a href="#" class="nav-link" onclick="openSettingsModal(); closeSidebar()">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="#" class="nav-link text-danger" onclick="closeSidebar(); logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Wrapper -->
+<!-- App Wrapper for Sidebar Push -->
+    <div class="app-wrapper">
+        <div class="main-content">
+            <!-- Stats Grid -->
+
+            <div class="stats-section fade-in-up">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h3 fw-bold mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Dashboard Overview</h2>
+                    <span class="badge bg-success fs-6">Active</span>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+<div id="statsCards" class="position-relative">
+                            <div class="position-absolute top-50 start-50 translate-middle text-center text-muted w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-tachometer-alt fa-3x mb-4 opacity-50"></i>
+                                <h5 class="mb-2">Welcome to your dashboard</h5>
+                                <p class="mb-0">Stats loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Section - Promoted for prominence -->
+            <section id="menu" class="menu-section fade-in-up mb-5">
+                <div class="menu-hero">
+                    <div class="container">
+                        <h2 class="h3 fw-bold mb-2 mb-md-3">Order From Full Menu</h2>
+                        <p class="mb-0 lead small">All available dishes from our kitchen (<span id="menuCountDisplay">0</span> items) - add to cart & enjoy!</p>
+<div class="menu-loading" style="display: none;">
+                            <div class="spinner-border text-light" style="width: 4rem; height: 4rem;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 h6 text-light opacity-75">Loading all menu items...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="menu-grid horizontal-menu" id="menuGrid" style="background: white; border-radius: 0 0 var(--border-radius) var(--border-radius);">
+                    <!-- Menu cards loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Profile Summary Row -->
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <div class="profile-section fade-in-up card h-100">
+                        <div class="card-header bg-primary text-white border-0 rounded-top-4">
+                            <h3 class="h4 mb-0 fw-bold">
+                                <i class="fas fa-user-circle me-2"></i>My Profile
+                            </h3>
+                        </div>
+<div class="card-body text-center p-4" id="mainProfileCard">
+                            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem; display: none;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mb-0" style="display: none;">Loading profile details...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="favorites-section fade-in-up card h-100">
+                        <div class="card-header bg-info text-white border-0 rounded-top-4">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-heart me-2"></i>Favorites</h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-heart fa-2x mb-3 opacity-75"></i>
+                                <p class="mb-0">No favorites yet</p>
+                                <small>Tap hearts on menu items to save</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Recent Orders -->
+                <div class="col-lg-8">
+                    <div class="orders-section fade-in-up">
+                        <div class="card-header bg-white border-bottom">
+                            <h3 class="h4 mb-0 fw-bold">
+                                <i class="fas fa-list me-2 text-primary"></i>Recent Orders
+                            </h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover orders-table mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Items</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ordersTableBody">
+                                        <!-- Orders loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="col-lg-4">
+                    <div class="quick-actions fade-in-up">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="#menu" class="d-block btn btn-outline-primary w-100 mb-3 text-start rounded-3">
+                                    <i class="fas fa-utensils me-2"></i>Order Food
+                                </a>
+                                <a href="cart.html" class="d-block btn btn-outline-success w-100 mb-3 text-start rounded-3">
+                                    <i class="fas fa-shopping-cart me-2"></i>View Cart
+                                </a>
+                                <a href="#" class="d-block btn btn-outline-info w-100 text-start rounded-3">
+                                    <i class="fas fa-star me-2"></i>My Favorites
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- Settings Modal -->
+                <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="settingsModalLabel">
+                                    <i class="fas fa-user-cog me-2"></i>Profile Settings
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form id="profileForm">
+                                <div class="modal-body">
+                                    <input type="hidden" id="currentAvatar" name="currentAvatar">
+                                    
+                                    <div class="mb-4">
+                                        <div class="avatar-preview mb-3 text-center">
+                                            <img id="avatarPreview" src="" alt="Profile avatar preview" class="rounded-circle shadow-lg" style="width: 120px; height: 120px; object-fit: cover; border: 4px solid #667eea;">
+                                            <div id="avatarPlaceholder" class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 120px; height: 120px; display: none;">
+                                                <i class="fas fa-user fa-2x text-muted"></i>
+                                            </div>
+                                        </div>
+                                        <label for="avatarInput" class="form-label">
+                                            <i class="fas fa-camera me-1"></i>Change Profile Picture
+                                        </label>
+                                        <input type="file" class="form-control" id="avatarInput" name="avatar" accept="image/*" style="display: none;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="document.getElementById('avatarInput').click()">
+                                            <i class="fas fa-upload me-1"></i>Choose Image
+                                        </button>
+                                        <div class="form-text">Square images (1:1) work best. Max 5MB.</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="nameInput" class="form-label fw-bold">
+                                            <i class="fas fa-user me-1"></i>Display Name
+                                        </label>
+                                        <input type="text" class="form-control" id="nameInput" name="name" maxlength="50" required>
+                                        <div class="form-text">2-50 characters. Used everywhere in app.</div>
+                                    </div>
+
+                                    <div class="text-center">
+                                        <div class="form-text text-muted mb-3">
+                                            Email: <span id="profileEmail" class="fw-medium"></span> (not editable)
+                                        </div>
+                                    </div>
+
+                                    <div id="uploadProgress" class="progress mb-3 d-none" style="height: 6px;">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <div id="formError" class="alert alert-danger d-none" role="alert"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" id="profileSubmit">
+                                        <i class="fas fa-save me-1"></i>Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                </div> <!-- End main-content -->
+            </div> <!-- End app-wrapper -->
+
+    </div>
+
+    <!-- Footer - Full width below everything -->
+    <footer class="footer-section fade-in-up mt-5 pt-5 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-utensils me-2 text-primary"></i>Belleful</h6>
+                    <p class="text-muted mb-3">Delicious meals delivered to your door. Fast, fresh, and affordable.</p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="text-muted"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-muted"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-muted"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold mb-3">Quick Links</h6>
+                    <div class="row text-muted">
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                <li><a href="user-dashboard.html" class="text-decoration-none">Home</a></li>
+        <li><a href="user-dashboard.html#menu" class="text-decoration-none">Menu</a></li>
+                                <li><a href="cart.html" class="text-decoration-none">Cart</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li><a href="#" class="text-decoration-none">Help</a></li>
+                                <li><a href="#" class="text-decoration-none">Contact</a></li>
+                                <li><a href="#" class="text-decoration-none">Privacy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4 pt-3 border-top text-muted small">
+                © 2026 Belleful. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts - Bootstrap FIRST, dropdown-ready -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init({ duration: 800, once: true });</script>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/dashboard.js"></script>
+    
+    <!-- Bulletproof Profile Dropdown Fix -->
+    <script>
+      // Robust Account Dropdown - Fixes all timing/click issues
+      function initAccountDropdown() {
+        const dropdownEl = document.getElementById('accountDropdown');
+        if (!dropdownEl || !window.bootstrap?.Dropdown) return;
+        
+        // Clean existing
+        const existing = bootstrap.Dropdown.getInstance(dropdownEl);
+        if (existing) existing.dispose();
+        
+        new bootstrap.Dropdown(dropdownEl, { boundary: document.body });
+      }
+
+      // Multi-init strategy
+      ['DOMContentLoaded', 'load'].forEach(event => {
+        document.addEventListener(event, () => setTimeout(initAccountDropdown, 100));
+      });
+      
+      // Bootstrap load check
+      const bootstrapCheck = setInterval(() => {
+        if (window.bootstrap?.Dropdown && document.getElementById('accountDropdown')) {
+          initAccountDropdown();
+          clearInterval(bootstrapCheck);
+        }
+      }, 50);
+      
+      // Manual fallback
+      document.addEventListener('click', e => {
+        if (e.target.matches('#accountDropdown [data-bs-toggle="dropdown"]')) {
+          const dropdown = document.getElementById('accountDropdown');
+          const bsDropdown = bootstrap.Dropdown.getInstance(dropdown);
+          if (bsDropdown) bsDropdown.toggle();
+          else {
+            // Pure CSS fallback
+            const menu = dropdown.querySelector('.dropdown-menu');
+            menu.classList.toggle('show');
+          }
+        }
+      });
+
+      // API_BASE
+      if (typeof window.API_BASE === 'undefined') {
+        window.API_BASE = window.location.hostname.includes('vercel.app') 
+          ? 'https://belleful-gold.vercel.app/api' 
+          : '/api';
+      }
+      
+      // Load dashboard
+      if (typeof window.loadUserDashboard === 'function') {
+        window.loadUserDashboard();
+      }
+      
+      window.logout = function() {
+        localStorage.clear();
+        if (typeof showToast === 'function') showToast('Logged out', 'info');
+        window.location.href = 'index.html';
+      };
+    </script>
+
+</body>
+</html>
