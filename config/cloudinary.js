@@ -62,16 +62,12 @@ const getUploadUrl = (folder = 'belleful', options = {}) => {
   const params = new URLSearchParams({
     upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET || 'belleful-uploads',
     folder,
-    // Simplified transformation - can cause 400 if malformed
-    transformation: JSON.stringify([
-      { width: 800, height: 600, crop: 'limit', quality: 'auto' }
-    ]),
+    // Remove transformation - common 400 cause for unsigned uploads
     ...options
   });
-  console.log('Cloudinary params:', {
+  console.log('Cloudinary params (no transform):', {
     preset: params.get('upload_preset'),
-    folder: params.get('folder'),
-    has_transform: !!params.get('transformation')
+    folder: params.get('folder')
   });
 
   return {
