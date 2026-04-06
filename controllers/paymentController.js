@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const orderController = require('./orderController');
 
 /**
  * Payment Controller - Receipt Upload & Verification
@@ -29,13 +30,17 @@ exports.uploadReceipt = async (req, res) => {
     order.paymentStatus = 'verified';
     order.receiptImage = receiptUrl;
     order.paymentReference = `rcpt-${Date.now()}`;
-    await order.save();
+
+    // Advance to pending admin approval + notify
+    await orderController.approvePendingPayment(order._id);
 
     res.json({ 
       success: true, 
       receiptUrl,
-      orderId: order._id 
+      orderId: order._id,
+      message: 'Receipt uploaded. Awaiting admin approval.'
     });
+
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
