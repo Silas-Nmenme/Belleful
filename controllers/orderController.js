@@ -320,3 +320,43 @@ exports.updateStatus = async (req, res) => {
   }
 };
 
+// ===== GET SINGLE USER ORDER (Tracking) =====
+exports.getMyOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid order ID format' });
+    }
+
+    const order = await Order.findOne({ _id: id, user: req.user._id })
+      .populate('items.menuItem', 'name price image')
+      .lean();
+      
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found or access denied' });
+    }
+
+    // Clean data
+    const cleanOrder = {
+      ...order,
+      totalAmount: Number(order.totalAmount) || 0,
+      items: (order.items || []).map(item => ({
+        ...item,
+        price: Number(item.price) || 0
+      }))
+    };
+
+    console.log(`✅ User order lookup: ${id.slice(-8)} for ${req.user.email}`);
+    res.json({ success: true, data: cleanOrder });
+  } catch (error) {
+    console.error('getMyOrderById error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+

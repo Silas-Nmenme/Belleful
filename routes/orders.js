@@ -14,6 +14,7 @@ router.use(auth);
 // Customer routes
 router.post('/checkout', orderController.checkout);
 router.get('/my-orders', orderController.getMyOrders);
+router.get('/my-orders/:id', orderController.getMyOrderById);
 
 // Admin routes
 router.get('/', isAdmin, orderController.getAllOrders);
