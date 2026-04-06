@@ -99,6 +99,31 @@ const sendTemplateEmail = async (email, subject, html, htmlTemplate) => {
 };
 
 /**
+ * Send Login Success Email
+ */
+const sendLoginSuccessEmail = async (email, name) => {
+  if (!transporter) return { success: false };
+
+  const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' });
+  const html = emailTemplates.loginSuccess(name, timestamp);
+
+  const mailOptions = {
+    from: `"Belleful" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: 'Login Successful - Welcome Back to Belleful! 🍽️',
+    html
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error(`Login email failed: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Order Confirmation
  */
 const sendOrderConfirmation = async (order) => {
@@ -128,7 +153,9 @@ module.exports = {
   sendOTPEmail,
   sendWelcomeEmail,
   sendTemplateEmail,
+  sendLoginSuccessEmail,
   sendOrderConfirmation,
   sendOrderStatusUpdate
 };
+
 

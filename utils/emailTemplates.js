@@ -196,7 +196,7 @@ const emailTemplates = {
 
       <div class="text-center mt-4">
         <p class="text-muted mb-3">Track your order in Dashboard</p>
-        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}/dashboard" class="btn btn-success btn-lg">
+        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}/login.html" class="btn btn-success btn-lg">
           <i class="fas fa-tachometer-alt me-2"></i>View Orders
         </a>
       </div>
@@ -350,5 +350,210 @@ const emailTemplates = {
   `
 };
 
-module.exports = emailTemplates;
+  loginSuccess: (name, timestamp) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Login Successful - Belleful 🍽️</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #feca57); 
+      background-size: 400% 400%; 
+      animation: gradientShift 15s ease infinite; 
+      min-height: 100vh;
+    }
+    @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    
+    .main-hero { 
+      max-width: 600px; 
+      margin: 40px auto; 
+      animation: fadeInUp 1.2s ease-out; 
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .food-hero { 
+      background: linear-gradient(135deg, #28a745, #20c997, #17a2b8); 
+      color: white; 
+      padding: 50px 30px; 
+      border-radius: 30px; 
+      text-align: center; 
+      position: relative; 
+      overflow: hidden; 
+      box-shadow: 0 25px 50px rgba(40, 167, 69, 0.4);
+      animation: heroPulse 3s ease-in-out infinite;
+    }
+    @keyframes heroPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    
+    .food-hero i.fa-utensils { 
+      font-size: 5rem; 
+      animation: spinUtensils 4s linear infinite, bounceIn 2s ease-out; 
+      text-shadow: 0 0 20px rgba(255,255,255,0.8);
+    }
+    @keyframes spinUtensils { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+    
+    .steam-effect { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 3rem; opacity: 0.6; animation: steamRise 3s ease-in-out infinite; }
+    @keyframes steamRise { 0%, 100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.3; } 50% { transform: translateX(-50%) translateY(-30px) scale(1.3); opacity: 0.8; } }
+    
+    .success-card { 
+      background: white; 
+      margin-top: -30px; 
+      border-radius: 0 0 30px 30px; 
+      padding: 50px 40px; 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15); 
+      animation: slideInUp 1s ease-out 0.5s both;
+    }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .check-circle { 
+      font-size: 4rem; 
+      color: #28a745; 
+      animation: pulseCheck 2s ease-in-out infinite, float 3s ease-in-out infinite;
+    }
+    @keyframes pulseCheck { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40,167,69,0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(40,167,69,0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40,167,69,0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    
+    .food-features { 
+      display: flex; 
+      gap: 20px; 
+      margin: 40px 0; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+    }
+    .food-item { 
+      text-align: center; 
+      padding: 20px; 
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef); 
+      border-radius: 20px; 
+      min-width: 120px; 
+      animation: slideInLeft 1.5s ease-out forwards;
+      opacity: 0;
+    }
+    .food-item:nth-child(1) { animation-delay: 0.8s; }
+    .food-item:nth-child(2) { animation-delay: 1s; }
+    .food-item:nth-child(3) { animation-delay: 1.2s; }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    
+    .food-item i { font-size: 2.5rem; animation: iconWobble 2s ease-in-out infinite 1s; }
+    @keyframes iconWobble { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
+    
+    .cta-button { 
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52); 
+      border: none; 
+      padding: 18px 50px; 
+      font-size: 20px; 
+      border-radius: 50px; 
+      font-weight: 700; 
+      color: white; 
+      text-decoration: none; 
+      display: inline-block; 
+      animation: pulseButton 2.5s infinite, shake 0.5s ease-in-out 2s both;
+      box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+      transition: all 0.3s ease;
+    }
+    @keyframes pulseButton { 0% { box-shadow: 0 0 0 0 rgba(255,107,107,0.7); } 70% { box-shadow: 0 0 0 25px rgba(255,107,107,0); } 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
+    
+    .footer { 
+      background: rgba(255,255,255,0.9); 
+      padding: 30px; 
+      border-radius: 20px; 
+      margin-top: 40px; 
+      text-align: center; 
+      animation: fadeIn 2s ease-out 1.5s both;
+    }
+    .timestamp { 
+      background: linear-gradient(135deg, #28a745, #20c997); 
+      color: white; 
+      padding: 10px 20px; 
+      border-radius: 25px; 
+      display: inline-block; 
+      font-size: 14px; 
+      animation: glowPulse 2s infinite;
+    }
+    @keyframes glowPulse { 0% { box-shadow: 0 0 5px rgba(40,167,69,0.5); } 50% { box-shadow: 0 0 20px rgba(40,167,69,0.8); } 100% { box-shadow: 0 0 5px rgba(40,167,69,0.5); } }
+    
+    @media (max-width: 768px) { 
+      .food-features { flex-direction: column; align-items: center; } 
+      .food-item { min-width: 200px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-hero">
+    <!-- Food Hero Section with Heavy Animations -->
+    <div class="food-hero">
+      <div class="steam-effect">☁️</div>
+      <i class="fas fa-utensils food-icon"></i>
+      <h1 class="display-4 fw-bold mb-4 animate__animated animate__bounceIn">Welcome Back <strong>${name}!</strong> 🍕🍔</h1>
+      <p class="lead mb-0">You have successfully logged into Belleful!</p>
+    </div>
+    
+    <!-- Success Card -->
+    <div class="success-card">
+      <div class="check-circle mb-4">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      
+      <h2 class="text-success mb-4">Login Successful ✅</h2>
+      <p class="lead mb-4 text-center">Your session is active. Ready to order your favorite meals!</p>
+      
+      <!-- Food Features Section -->
+      <div class="food-features">
+        <div class="food-item">
+          <i class="fas fa-hamburger text-warning"></i>
+          <h6>Hot Meals</h6>
+          <small>Browse Menu</small>
+        </div>
+        <div class="food-item">
+          <i class="fas fa-shopping-cart text-primary"></i>
+          <h6>Quick Cart</h6>
+          <small>Add Favorites</small>
+        </div>
+        <div class="food-item">
+          <i class="fas fa-motorcycle text-success"></i>
+          <h6>Fast Delivery</h6>
+          <small>30 mins or free</small>
+        </div>
+      </div>
+      
+      <!-- CTA Button -->
+      <div class="text-center mt-5">
+        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}" class="cta-button">
+          <i class="fas fa-shopping-bag me-3"></i>
+          Start Ordering Now!
+        </a>
+      </div>
+      
+      <!-- Security Notice -->
+      <div class="alert alert-info mt-5" style="animation: slideInUp 1s ease-out 2s both;">
+        <i class="fas fa-shield-alt me-2"></i>
+        <small>This was you, right? If not, <a href="${process.env.FRONTEND_URL}/reset-password.html" style="color: #007bff;">secure your account</a></small>
+      </div>
+    </div>
+    
+    <!-- Animated Footer -->
+    <div class="footer">
+      <div class="timestamp mb-3">
+        Logged in: ${timestamp}
+      </div>
+      <p class="mb-0">
+        <i class="fas fa-heart text-danger me-2"></i>
+        Made with ❤️ for food lovers | © 2026 Belleful
+      </p>
+      <div style="margin-top: 20px;">
+        <span class="me-3">🍕 🍔 🍟 🍲 🌮 🍣</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `,
+
+  module.exports = emailTemplates;
+
 
