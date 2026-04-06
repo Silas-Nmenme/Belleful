@@ -19,6 +19,7 @@ router.get('/my-orders', orderController.getMyOrders);
 router.get('/', isAdmin, orderController.getAllOrders);
 router.get('/admin', isAdmin, orderController.getAllOrders);
 router.patch('/:id/status', isAdmin, orderController.updateStatus);
+router.get('/:id', isAdmin, orderController.getOrderById);
 
 module.exports = router;
 

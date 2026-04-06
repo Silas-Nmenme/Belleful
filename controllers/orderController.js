@@ -220,6 +220,30 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
+// ===== GET SINGLE ORDER (Admin View) =====
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email phoneNumber')
+      .populate('items.menuItem', 'name price image')
+      .lean();
+      
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Admin-only access
+    if (!req.user?.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // ===== UPDATE STATUS (Admin) =====
 exports.updateStatus = async (req, res) => {
   try {
