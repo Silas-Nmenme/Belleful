@@ -247,19 +247,41 @@ exports.getOrderById = async (req, res) => {
 // ===== UPDATE STATUS (Admin) =====
 exports.updateStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status: clientStatus } = req.body;
+    
+    // Schema enum validation
+    const validStatuses = [
+      'pending_payment', 'pending_approval', 'preparing', 
+      'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'
+    ];
+    
+    // Legacy mapping for frontend compatibility
+    const statusMap = {
+      'vendor_approved': 'preparing'
+    };
+    
+    const finalStatus = statusMap[clientStatus] || clientStatus;
+    
+    if (!validStatuses.includes(finalStatus)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid status: ${clientStatus}. Valid: ${validStatuses.join(', ')}`,
+        validStatuses 
+      });
+    }
+    
     const order = await Order.findById(req.params.id).populate('user');
-
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    order.orderStatus = status;
+    order.orderStatus = finalStatus;
     await order.save();
 
     // Notify customer
-    await sendOrderStatusUpdate(order, status);
+    await sendOrderStatusUpdate(order, finalStatus);
 
     res.json({ success: true, data: order });
   } catch (error) {
+    console.error('Status update error:', error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
