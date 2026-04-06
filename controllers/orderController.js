@@ -15,17 +15,28 @@ exports.checkout = async (req, res) => {
   try {
     const { cartSnapshot, grandTotal, phoneNumber, bankAccount, bankName, deliveryAddress } = req.body;
     
+    // Validate cartSnapshot FIRST - prevents crash on null/undefined
     let cart;
-    
-    if (cartSnapshot && cartSnapshot.items && cartSnapshot.items.length > 0) {
-      // Validate snapshot items and stock
+
+    if (!cartSnapshot || !cartSnapshot.items || !Array.isArray(cartSnapshot.items) || cartSnapshot.items.length === 0) {
+      // Fallback to DB cart
+      cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+      if (!cart || !cart.items?.length) {
+        return res.status(400).json({ success: false, message: 'Cart empty or invalid cart snapshot payload. Please add items to cart first.' });
+      }
+      console.log('Fallback to DB cart:', cart.items.length, 'items');
+    } else {
+      // Validate snapshot items data and stock
       for (let item of cartSnapshot.items) {
+        if (!item.menuItem || !item.name || typeof item.quantity !== 'number' || item.quantity < 1 || typeof item.price !== 'number') {
+          return res.status(400).json({ success: false, message: 'Invalid cart item data in payload' });
+        }
         const menuItem = await MenuItem.findById(item.menuItem);
         if (!menuItem || menuItem.stock < item.quantity) {
-          return res.status(400).json({ success: false, message: `${item.name} insufficient stock` });
+          return res.status(400).json({ success: false, message: `${item.name} insufficient stock or not found` });
         }
       }
-      // Create mock cart from snapshot
+      // Create mock cart from validated snapshot
       cart = {
         items: cartSnapshot.items.map(i => ({
           menuItem: { _id: i.menuItem },
@@ -33,16 +44,10 @@ exports.checkout = async (req, res) => {
           price: i.price,
           quantity: i.quantity
         })),
-        grandTotal: grandTotal || 0,
+        grandTotal: Number(grandTotal) || 0,
         deliveryType: cartSnapshot.deliveryPreference || 'pickup'
       };
       console.log('Using validated cartSnapshot:', cart.items.length, 'items');
-    } else {
-      // Fallback to DB cart
-      cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
-      if (!cart || cart.items.length === 0) {
-        return res.status(400).json({ success: false, message: 'Cart empty' });
-      }
     }
 
     // Validate form fields
@@ -52,7 +57,7 @@ exports.checkout = async (req, res) => {
     if (!bankAccount || !bankName) {
       return res.status(400).json({ success: false, message: 'bankAccount and bankName required' });
     }
-    const deliveryMethod = cart.deliveryType;
+    const deliveryMethod = cart.deliveryType || 'pickup';
     if (deliveryMethod === 'delivery' && !deliveryAddress) {
       return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery orders' });
     }
@@ -66,13 +71,13 @@ exports.checkout = async (req, res) => {
         quantity: item.quantity
       })),
       totalAmount: cart.grandTotal,
-      deliveryMethod: cart.deliveryType,
+      deliveryMethod: deliveryMethod,
       phoneNumber,
       bankAccount,
       bankName
     };
 
-    if (cart.deliveryType === 'delivery') {
+    if (deliveryMethod === 'delivery') {
       orderData.deliveryAddress = deliveryAddress;
     }
 
