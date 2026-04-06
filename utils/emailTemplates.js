@@ -11,12 +11,22 @@ const emailTemplates = {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); }
-    .main-container { max-width: 500px; margin: 40px auto; }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 30px; border-radius: 20px 20px 0 0; text-align: center; }
-    .otp-card { background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-    .otp-display { background: linear-gradient(135deg, #007bff, #0056b3); color: white; font-size: 36px; font-weight: bold; letter-spacing: 8px; padding: 25px; border-radius: 15px; margin: 30px 0; text-align: center; }
+    body { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); animation: gradientShift 10s ease infinite; background-size: 400% 400%; }
+    @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .main-container { max-width: 500px; margin: 40px auto; animation: fadeIn 1s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 30px; border-radius: 20px 20px 0 0; text-align: center; overflow: hidden; position: relative; }
+    .hero::before { content: '🍽️'; position: absolute; top: -20px; right: -20px; font-size: 40px; animation: steamRise 3s ease-in-out infinite; opacity: 0.8; }
+    .hero i { animation: spinUtensils 3s linear infinite; }
+    @keyframes spinUtensils { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(90deg); } 50% { transform: rotate(180deg); } 75% { transform: rotate(270deg); } }
+    @keyframes steamRise { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; } 50% { transform: translateY(-20px) scale(1.2); opacity: 1; } }
+    .otp-card { background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: slideInUp 0.8s ease-out; }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .otp-display { background: linear-gradient(135deg, #007bff, #0056b3); color: white; font-size: 36px; font-weight: bold; letter-spacing: 8px; padding: 25px; border-radius: 15px; margin: 30px 0; text-align: center; animation: pulseGlow 2s ease-in-out infinite alternate, bounce 1s infinite; box-shadow: 0 0 20px rgba(0,123,255,0.5); }
+    @keyframes pulseGlow { from { box-shadow: 0 0 20px rgba(0,123,255,0.5); } to { box-shadow: 0 0 40px rgba(0,123,255,0.8), 0 0 60px rgba(0,123,255,0.4); } }
+    @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
   </style>
+
 </head>
 <body>
   <div class="main-container">
@@ -33,7 +43,7 @@ const emailTemplates = {
       </div>
       <hr class="my-4">
       <div class="text-center">
-        <p class="mb-0"><i class="fas fa-heart text-danger"></i> © 2024 Belleful - Delicious Food Delivered</p>
+        <p class="mb-0"><i class="fas fa-heart text-danger"></i> © 2026 Belleful - Delicious Food Delivered</p>
       </div>
     </div>
   </div>
@@ -51,11 +61,21 @@ const emailTemplates = {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 50px 30px; }
-    .btn-order { background: linear-gradient(135deg, #ff6b6b, #ee5a52); border: none; padding: 15px 40px; font-size: 18px; border-radius: 50px; font-weight: 600; }
-    .features { background: white; margin: 30px 0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; animation: gradientShift 15s ease infinite; background-size: 400% 400%; }
+    @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 50px 30px; position: relative; overflow: hidden; }
+    .hero i { animation: bouncePlate 2s ease-in-out infinite; }
+    @keyframes bouncePlate { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-10px); } }
+    .hero::after { content: '✨'; position: absolute; bottom: 10px; right: 20px; font-size: 24px; animation: sparkle 2s linear infinite; }
+    @keyframes sparkle { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.2); } }
+    .btn-order { background: linear-gradient(135deg, #ff6b6b, #ee5a52); border: none; padding: 15px 40px; font-size: 18px; border-radius: 50px; font-weight: 600; animation: pulseButton 2s infinite; transition: all 0.3s ease; }
+    @keyframes pulseButton { 0% { box-shadow: 0 0 0 0 rgba(255,107,107,0.7); } 70% { box-shadow: 0 0 0 10px rgba(255,107,107,0); } 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); } }
+    .features { background: white; margin: 30px 0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: slideInLeft 1s ease-out; }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    .features i { transition: transform 0.3s ease; }
+    .features:hover i { transform: scale(1.2) rotate(10deg); }
   </style>
+
 </head>
 <body>
   <div class="container-fluid p-0">
@@ -97,7 +117,7 @@ const emailTemplates = {
     <div class="text-center py-4 bg-light">
       <small class="text-muted">
         <i class="fas fa-heart text-danger me-1"></i>
-        Made with ❤️ for food lovers | © 2024 Belleful
+        Made with ❤️ for food lovers | © 2026 Belleful
       </small>
     </div>
   </div>
@@ -115,11 +135,20 @@ const emailTemplates = {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
-    .order-card { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-    .item-row { border-bottom: 1px solid #eee; padding: 15px 0; }
+    body { font-family: 'Segoe UI', sans-serif; animation: fadeInBody 1.5s ease-out; }
+    @keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
+    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; position: relative; overflow: hidden; }
+    .hero i { animation: pulseCheck 1.5s ease-in-out infinite; }
+    @keyframes pulseCheck { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .hero::before { content: '🎉'; position: absolute; top: 20px; left: 20px; font-size: 30px; animation: bounce 2s infinite; }
+    @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-15px); } 60% { transform: translateY(-8px); } }
+    .order-card { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: slideInUp 0.8s ease-out; }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .item-row { border-bottom: 1px solid #eee; padding: 15px 0; transition: background 0.3s ease; }
+    .item-row:hover { background: #f8f9fa; transform: translateX(5px); }
+    .btn-success { animation: pulseButton 2s infinite; }
   </style>
+
 </head>
 <body>
   <div class="container py-5">
@@ -175,7 +204,7 @@ const emailTemplates = {
 
     <div class="text-center mt-5">
       <small class="text-muted">
-        <i class="fas fa-utensils me-2"></i>© 2024 Belleful - ${order.deliveryMethod === 'pickup' ? 'Ready for Pickup' : 'Fast Delivery'}
+        <i class="fas fa-utensils me-2"></i>© 2026 Belleful - ${order.deliveryMethod === 'pickup' ? 'Ready for Pickup' : 'Fast Delivery'}
       </small>
     </div>
   </div>
