@@ -60,13 +60,18 @@ const getUploadUrl = (folder = 'belleful', options = {}) => {
   const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinary.config().cloud_name}/image/upload`;
   
   const params = new URLSearchParams({
-    upload_preset: 'belleful-uploads',
+    upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET || 'belleful-uploads',
     folder,
+    // Simplified transformation - can cause 400 if malformed
     transformation: JSON.stringify([
-      { width: 800, height: 600, crop: 'limit', quality: 'auto' },
-      { fetch_format: 'auto' }
+      { width: 800, height: 600, crop: 'limit', quality: 'auto' }
     ]),
     ...options
+  });
+  console.log('Cloudinary params:', {
+    preset: params.get('upload_preset'),
+    folder: params.get('folder'),
+    has_transform: !!params.get('transformation')
   });
 
   return {
