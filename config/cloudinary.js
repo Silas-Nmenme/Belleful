@@ -12,6 +12,12 @@ console.log('☁️ Cloudinary config:', {
   api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
 });
 
+// Validate required env vars at startup
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('🚨 CLOUDINARY ENV VARS MISSING - Uploads will fail!');
+  console.error('Set: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
