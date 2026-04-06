@@ -9,23 +9,53 @@ const MenuItem = require('../models/MenuItem');
 // ===== USER DASHBOARD =====
 exports.getUserStats = async (req, res) => {
   try {
-    const stats = await Order.aggregate([
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    const now = new Date();
+    const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const statsResult = await Order.aggregate([
       { $match: { user: req.user._id } },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
           totalSpent: { $sum: '$totalAmount' },
-          avgOrder: { $avg: '$totalAmount' }
+          avgOrderValue: { $avg: '$totalAmount' }
         }
       }
     ]);
 
+    const monthlyResult = await Order.aggregate([
+      { 
+        $match: { 
+          user: req.user._id,
+          createdAt: { $gte: firstDayThisMonth }
+        } 
+      },
+      {
+        $group: {
+          _id: null,
+          monthlyOrders: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const stats = {
+      totalOrders: statsResult[0]?.totalOrders || 0,
+      totalSpent: Math.round(statsResult[0]?.totalSpent || 0),
+      avgOrderValue: Math.round(statsResult[0]?.avgOrderValue || 0),
+      monthlyOrders: monthlyResult[0]?.monthlyOrders || 0
+    };
+
     res.json({ 
       success: true, 
-      stats: stats[0] || { totalOrders: 0, totalSpent: 0, avgOrder: 0 }
+      data: stats
     });
   } catch (error) {
+    console.error('getUserStats error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
