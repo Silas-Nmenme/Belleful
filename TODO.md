@@ -1,27 +1,34 @@
-# Cart-Checkout-Approval Flow Fix - TODO
+# Belleful Checkout/Cart Fix - TODO Steps
 
-## Approved Plan Steps (User Confirmed)
+## Approved Plan Breakdown
+**Task**: Fix `order._id.slice is not a function` & `Cart empty` 400 errors.
 
-### Backend Fixes (Priority 1)
-- [x] **Step 1**: Update controllers/orderController.js - ✅ Added approvePendingPayment(), checkout validation.
-- [x] **Step 2**: ✅ paymentController.js calls approvePendingPayment() post-upload.
+### Step 1: [x] Fix Order Model Virtuals & JSON Serialization
+- Edit `models/Order.js`: Ensure `displayId` virtual works in `toJSON`.
+- Edit `controllers/orderController.js`: Use `order.toJSON({ virtuals: true })`.
+- Edit `utils/emailTemplates.js`: Safe `order._id.toString().slice(-6)`.
 
-### Frontend Admin UI (Priority 2)
-- [ ] **Step 5**: frontend/js/admin-dashboard.js - Add approve/reject buttons per row.
-- [ ] **Step 3**: Enhance orderController.updateStatus with validation transitions + emails.
-- [ ] **Step 4**: models/Order.js - Add pre-save middleware for status logic.
+### Step 2: [ ] Fix Checkout Cart Empty (Primary Fix)
+- Edit `frontend/js/checkout-page.js`: Send `cartSnapshot` in POST payload + safe _id handling.
+- Edit `controllers/orderController.js.checkout`: Accept/validate `cartSnapshot` from frontend → bypass DB cart fetch.
 
-### Frontend Admin UI (Priority 2)
-- [ ] **Step 5**: frontend/js/admin-dashboard.js - Add approve/reject buttons per row, status dropdown, call updateOrderStatus.
-- [ ] **Step 6**: Update admin-dashboard.html if needed for modals/buttons.
+### Step 3: [ ] Enhance Cart Persistence Debug
+- Edit `controllers/cartController.js`: Add logging to `addToCart`/`updateQuantity`.
+- Edit `frontend/js/cart.js`: Force backend sync before checkout snapshot.
 
-### Frontend User Flows (Priority 3)
-- [ ] **Step 7**: frontend/js/checkout-page.js - Post-upload polling for status, live updates.
-- [ ] **Step 8**: frontend/js/dashboard.js - Add order status polling every 30s.
+### Step 4: [ ] Test Flow
+```
+1. npm start
+2. Login → Add menu items → /api/cart (check populated)
+3. Proceed → checkout.html → POST /orders/checkout → verify order + displayId
+4. Check backend cart cleared, stock deducted
+```
 
-### Testing & Completion
-- [ ] **Step 9**: Test full flow end-to-end.
-- [ ] **Step 10**: attempt_completion.
+### Step 5: [ ] Edge Cases
+- Empty cart validation.
+- Stock insufficient.
+- No token/guest cart.
 
-**Current Progress: Starting Step 1**
+**Current Progress: 2/5**  
+**Next: User approval → implement Step 1 → mark complete → Step 2**
 

@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
+const mongoose = require('mongoose');
 const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../services/emailService');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
@@ -12,44 +13,59 @@ const { isAdmin } = require('../middleware/role');
 // ===== CREATE ORDER (Checkout) =====
 exports.checkout = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+    const { cartSnapshot, grandTotal, phoneNumber, bankAccount, bankName, deliveryAddress } = req.body;
     
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ success: false, message: 'Cart empty' });
-    }
-
-    // Validate stock
-    for (let item of cart.items) {
-      if (item.menuItem.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `${item.menuItem.name} insufficient stock`
-        });
+    let cart;
+    
+    if (cartSnapshot && cartSnapshot.items && cartSnapshot.items.length > 0) {
+      // Validate snapshot items and stock
+      for (let item of cartSnapshot.items) {
+        const menuItem = await MenuItem.findById(item.menuItem);
+        if (!menuItem || menuItem.stock < item.quantity) {
+          return res.status(400).json({ success: false, message: `${item.name} insufficient stock` });
+        }
+      }
+      // Create mock cart from snapshot
+      cart = {
+        items: cartSnapshot.items.map(i => ({
+          menuItem: { _id: i.menuItem },
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity
+        })),
+        grandTotal: grandTotal || 0,
+        deliveryType: cartSnapshot.deliveryPreference || 'pickup'
+      };
+      console.log('Using validated cartSnapshot:', cart.items.length, 'items');
+    } else {
+      // Fallback to DB cart
+      cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+      if (!cart || cart.items.length === 0) {
+        return res.status(400).json({ success: false, message: 'Cart empty' });
       }
     }
 
-    // Validate delivery method (sync with cart)
-    const { deliveryAddress, phoneNumber, bankAccount, bankName } = req.body;
-    const deliveryMethod = cart.deliveryType;  // Use cart's deliveryType ('pickup'|'delivery')
-    if (deliveryMethod === 'delivery' && !deliveryAddress) {
-      return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery orders' });
-    }
+    // Validate form fields
     if (!phoneNumber) {
       return res.status(400).json({ success: false, message: 'phoneNumber required' });
     }
     if (!bankAccount || !bankName) {
       return res.status(400).json({ success: false, message: 'bankAccount and bankName required' });
     }
+    const deliveryMethod = cart.deliveryType;
+    if (deliveryMethod === 'delivery' && !deliveryAddress) {
+      return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery orders' });
+    }
 
     const orderData = {
       user: req.user._id,
       items: cart.items.map(item => ({
         menuItem: item.menuItem._id,
-        name: item.name,  // Use snapshot name
-        price: item.price,  // Use snapshot price
+        name: item.name,
+        price: item.price,
         quantity: item.quantity
       })),
-      totalAmount: cart.grandTotal,  // Use new grandTotal (includes fees/VAT)
+      totalAmount: cart.grandTotal,
       deliveryMethod: cart.deliveryType,
       phoneNumber,
       bankAccount,
@@ -69,15 +85,17 @@ exports.checkout = async (req, res) => {
       });
     }
 
-    // Clear cart
-    cart.items = [];
-    await cart.save();
+    // Clear DB cart if exists
+    if (cart._id) {
+      await Cart.findByIdAndUpdate(cart._id, { items: [], grandTotal: 0 });
+    }
 
     // Email
     await sendOrderConfirmation(order);
 
-    res.status(201).json({ success: true, data: order });
+    res.status(201).json({ success: true, data: order.toJSON({ virtuals: true }) });
   } catch (error) {
+    console.error('Checkout error:', error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -105,15 +123,12 @@ exports.getMyOrders = async (req, res) => {
     }
 
     // Defensive data cleaning
-    // Ultra-safe serialization - handle ALL potential undefined numerics
-    // Since lean(), no toObject needed - already plain
     const safeOrders = (orders || []).map(order => ({
       ...order,
       totalAmount: Number(order.totalAmount) || 0,
       items: (order.items || []).map(item => ({
         ...item,
         price: Number(item.price) || 0,
-        totalAmount: Number(item.totalAmount) || 0,
         menuItem: item.menuItem || null
       }))
     }));
