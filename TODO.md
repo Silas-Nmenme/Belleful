@@ -1,9 +1,34 @@
-# Order Receipt Upload Fix - Progress Tracker
+# Belleful Project TODO - Order Status Update Fix
 
-## ✅ Completed (0/3)
-- [ ] 1. Create TODO.md with plan ✅ **Done**
-- [x] 2. Edit controllers/paymentController.js - Fix orderStatus enum error ✅
-- [ ] 3. Test receipt upload flow → attempt_completion
+## Current Task: Fix Admin Order Status PATCH 400 Error + Toast Notifications
+**Status: 🔄 In Progress**
 
-**Status**: Fixing 'payment_verified' enum validation error
-**Next**: Edit paymentController.js
+### Step 1: [✅] PLANNING & ANALYSIS COMPLETE
+- Identified root cause: Malformed ObjectId handling
+- Frontend error handling missing
+- Confirmed valid enum statuses
+
+### Step 2: [⬜] BACKEND FIX - controllers/orderController.js
+- Validate ObjectId format
+- Clearer 400 errors for invalid IDs
+- Debug logging
+
+### Step 3: [⬜] FRONTEND FIX - admin-dashboard.js
+- Better error handling (404/400)
+- Loading state on dropdown
+- Enhanced toast notifications
+- Fix disabled current status option
+
+### Step 4: [⬜] TESTING
+- Test valid order status updates
+- Test invalid IDs
+- Verify toast notifications
+- Check table refresh
+
+### Step 5: [⬜] COMPLETION
+- Update TODO.md ✅
+- attempt_completion
+
+---
+
+**Last Updated:** $(date)

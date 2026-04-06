@@ -248,8 +248,21 @@ exports.getOrderById = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     const { status: clientStatus } = req.body;
+    const orderId = req.params.id;
     
-    // Schema enum validation
+    console.log(`🔄 Status update requested: ${orderId} → ${clientStatus}`);
+    
+    // 1. Validate ObjectId format (24 hex chars) - FIX 400 on malformed IDs
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      console.error(`❌ Invalid ObjectId format: ${orderId} (expected 24 hex chars)`);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid order ID format: ${orderId}. Must be valid 24-character hex ID.`,
+        receivedId: orderId 
+      });
+    }
+    
+    // 2. Schema enum validation
     const validStatuses = [
       'pending_payment', 'pending_approval', 'preparing', 
       'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'
@@ -263,26 +276,47 @@ exports.updateStatus = async (req, res) => {
     const finalStatus = statusMap[clientStatus] || clientStatus;
     
     if (!validStatuses.includes(finalStatus)) {
+      console.error(`❌ Invalid status: ${clientStatus} (mapped to ${finalStatus})`);
       return res.status(400).json({ 
         success: false, 
-        message: `Invalid status: ${clientStatus}. Valid: ${validStatuses.join(', ')}`,
-        validStatuses 
+        message: `Invalid status "${clientStatus}". Valid options: ${validStatuses.join(', ')}`,
+        validStatuses,
+        receivedStatus: clientStatus
       });
     }
     
-    const order = await Order.findById(req.params.id).populate('user');
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    // 3. Find order
+    const order = await Order.findById(orderId).populate('user');
+    if (!order) {
+      console.warn(`⚠️ Order not found: ${orderId}`);
+      return res.status(404).json({ 
+        success: false, 
+        message: `Order ${orderId.slice(-8)} not found or already deleted.` 
+      });
+    }
 
+    // 4. Update
+    const oldStatus = order.orderStatus;
     order.orderStatus = finalStatus;
     await order.save();
+    
+    console.log(`✅ Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus}`);
 
-    // Notify customer
-    await sendOrderStatusUpdate(order, finalStatus);
+    // 5. Notify customer (fire & forget)
+    sendOrderStatusUpdate(order, finalStatus).catch(err => console.error('Email failed:', err));
 
-    res.json({ success: true, data: order });
+    res.json({ 
+      success: true, 
+      message: `Status updated to "${finalStatus.replace('_', ' ')}"`,
+      data: order 
+    });
   } catch (error) {
-    console.error('Status update error:', error);
-    res.status(400).json({ success: false, message: error.message });
+    console.error('Status update ERROR:', error);
+    res.status(400).json({ 
+      success: false, 
+      message: `Status update failed: ${error.message}`,
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
+    });
   }
 };
 
