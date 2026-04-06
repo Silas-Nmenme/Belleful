@@ -83,8 +83,8 @@ const cartSchema = new mongoose.Schema({
 cartSchema.pre('save', function(next) {
   this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
   this.deliveryFee = this.deliveryType === 'delivery' ? 2000 : 0;
-  this.serviceFee = 500;
-  this.vatRate = 0.015;
+  this.serviceFee = this.items.length ? 500 : 0;
+  this.vatRate = this.items.length ? 0.015 : 0;
   const vatAmount = this.subtotal * this.vatRate;
   this.grandTotal = this.subtotal + this.deliveryFee + this.serviceFee + vatAmount;
   this.totalAmount = this.grandTotal; // Keep totalAmount for backwards compat

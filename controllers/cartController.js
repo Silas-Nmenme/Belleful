@@ -60,17 +60,17 @@ exports.getCart = async (req, res) => {
           deliveryType: 'pickup',
           subtotal: 0,
           deliveryFee: 0,
-          serviceFee: 500,
-          vatRate: 0.015,
-          grandTotal: 500,
-          totalAmount: 500,
+          serviceFee: 0,
+          vatRate: 0,
+          grandTotal: 0,
+          totalAmount: 0,
           itemCount: 0,
           breakdown: {
             subtotal: 0,
             deliveryFee: 0,
-            serviceFee: 500,
+            serviceFee: 0,
             vat: 0,
-            grandTotal: 500
+            grandTotal: 0
           }
         } 
       });
