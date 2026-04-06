@@ -1,34 +1,34 @@
-# Belleful Project TODO - Order Status Update Fix
+# Dashboard Stats Display Fix - User Profile Section
+Status: 🚀 In Progress
 
-## Current Task: Fix Admin Order Status PATCH 400 Error + Toast Notifications
-**Status: 🔄 In Progress**
+## Steps to Complete:
 
-### Step 1: [✅] PLANNING & ANALYSIS COMPLETE
-- Identified root cause: Malformed ObjectId handling
-- Frontend error handling missing
-- Confirmed valid enum statuses
+### ✅ 1. Create TODO.md (Current)
+### ⏳ 2. Update frontend/js/dashboard.js
+- Ensure `renderSidebarProfile()` called consistently on load
+- Use specific fallback: "WebDev SIlas" / "silasonyekachi15@gmail.com"
+- Verify `renderMainProfile()` shows exact format: `0 Orders / ₦0 Spent`
 
-### Step 2: [⬜] BACKEND FIX - controllers/orderController.js
-- Validate ObjectId format
-- Clearer 400 errors for invalid IDs
-- Debug logging
+### ⏳ 3. (Optional) Clean frontend/user-dashboard.html
+- Remove hardcoded sidebar values (JS will override)
 
-### Step 3: [⬜] FRONTEND FIX - admin-dashboard.js
-- Better error handling (404/400)
-- Loading state on dropdown
-- Enhanced toast notifications
-- Fix disabled current status option
+### ⏳ 4. Test Implementation
+```
+cd c:/Users/USER/OneDrive/Desktop/Belleful
+npm start
+```
+- Login → user-dashboard.html
+- Verify sidebar: "WebDev SIlas" / "silasonyekachi15@gmail.com" / `0 Orders ₦0 Spent`
+- Check main profile card matches
 
-### Step 4: [⬜] TESTING
-- Test valid order status updates
-- Test invalid IDs
-- Verify toast notifications
-- Check table refresh
+### ⏳ 5. Verify Backend APIs
+```
+curl -H "Authorization: Bearer [token]" localhost:5000/api/dashboard/user/stats
+curl -H "Authorization: Bearer [token]" localhost:5000/api/auth/profile
+```
 
-### Step 5: [⬜] COMPLETION
-- Update TODO.md ✅
+### ✅ 6. Complete Task
 - attempt_completion
 
----
+**Next Action**: Update `frontend/js/dashboard.js`
 
-**Last Updated:** $(date)
