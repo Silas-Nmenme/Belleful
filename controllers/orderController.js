@@ -13,95 +13,142 @@ const { isAdmin } = require('../middleware/role');
 // ===== CREATE ORDER (Checkout) =====
 exports.checkout = async (req, res) => {
   try {
-    const { cartSnapshot, grandTotal, phoneNumber, bankAccount, bankName, deliveryAddress } = req.body;
+    console.log('Checkout payload:', { 
+      hasCartSnapshot: !!req.body.cartSnapshot, 
+      hasUser: !!req.user?._id,
+      grandTotal: req.body.grandTotal 
+    });
     
-    // Validate cartSnapshot FIRST - prevents crash on null/undefined
-    let cart;
-
-    if (!cartSnapshot || !cartSnapshot.items || !Array.isArray(cartSnapshot.items) || cartSnapshot.items.length === 0) {
-      // Fallback to DB cart
-      cart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
-      if (!cart || !cart.items?.length) {
-        return res.status(400).json({ success: false, message: 'Cart empty or invalid cart snapshot payload. Please add items to cart first.' });
-      }
-      console.log('Fallback to DB cart:', cart.items.length, 'items');
-    } else {
-      // Validate snapshot items data and stock
+    const { cartSnapshot, grandTotal, phoneNumber, bankAccount, bankName, deliveryAddress, deliveryMethod: clientDeliveryMethod } = req.body;
+    
+    // 1. Auth check
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    
+    // 2. Validate required fields FIRST
+    if (!phoneNumber?.trim()) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+    if (!bankAccount?.trim() || !bankName?.trim()) {
+      return res.status(400).json({ success: false, message: 'Bank account number and bank name are required' });
+    }
+    
+    // 3. Get/validate cart - more robust
+    let cartItems = [];
+    let finalDeliveryMethod = clientDeliveryMethod || 'pickup';
+    
+    if (cartSnapshot?.items?.length) {
+      // Validate frontend snapshot
+      console.log('Validating cartSnapshot:', cartSnapshot.items.length, 'items');
       for (let item of cartSnapshot.items) {
-        if (!item.menuItem || !item.name || typeof item.quantity !== 'number' || item.quantity < 1 || typeof item.price !== 'number') {
-          return res.status(400).json({ success: false, message: 'Invalid cart item data in payload' });
+        const menuItemId = item.menuItem?._id || item.menuItem;
+        if (!menuItemId || !item.name || typeof item.quantity !== 'number' || item.quantity < 1 || typeof item.price !== 'number' || item.price <= 0) {
+          return res.status(400).json({ success: false, message: `Invalid item: ${item.name || 'Unknown'} - check quantity/price/menuItem ID` });
         }
-        const menuItem = await MenuItem.findById(item.menuItem);
-        if (!menuItem || menuItem.stock < item.quantity) {
-          return res.status(400).json({ success: false, message: `${item.name} insufficient stock or not found` });
+        
+        // Convert string ID to ObjectId if needed
+        let validId = menuItemId;
+        if (typeof menuItemId === 'string') {
+          try {
+            validId = new mongoose.Types.ObjectId(menuItemId);
+          } catch {
+            return res.status(400).json({ success: false, message: `Invalid menuItem ID: ${menuItemId}` });
+          }
         }
+        
+        const menuItem = await MenuItem.findById(validId);
+        if (!menuItem) {
+          return res.status(400).json({ success: false, message: `Menu item not found: ${item.name}` });
+        }
+        if (menuItem.stock < item.quantity) {
+          return res.status(400).json({ success: false, message: `${item.name} - only ${menuItem.stock} available (need ${item.quantity})` });
+        }
+        
+        cartItems.push({
+          menuItem: validId,
+          name: item.name,
+          price: Number(item.price),
+          quantity: item.quantity
+        });
       }
-      // Create mock cart from validated snapshot
-      cart = {
-        items: cartSnapshot.items.map(i => ({
-          menuItem: { _id: i.menuItem },
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity
-        })),
-        grandTotal: Number(grandTotal) || 0,
-        deliveryType: cartSnapshot.deliveryPreference || 'pickup'
-      };
-      console.log('Using validated cartSnapshot:', cart.items.length, 'items');
+      finalDeliveryMethod = cartSnapshot.deliveryPreference || 'pickup';
+    } else {
+      // Fallback DB cart
+      const dbCart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+      if (!dbCart?.items?.length) {
+        return res.status(400).json({ success: false, message: 'No items in cart. Add items from menu first.' });
+      }
+      cartItems = dbCart.items.map(item => ({
+        menuItem: item.menuItem._id,
+        name: item.menuItem.name,
+        price: item.menuItem.price,
+        quantity: item.quantity
+      }));
+      finalDeliveryMethod = dbCart.deliveryPreference || 'pickup';
     }
-
-    // Validate form fields
-    if (!phoneNumber) {
-      return res.status(400).json({ success: false, message: 'phoneNumber required' });
+    
+    if (!cartItems.length) {
+      return res.status(400).json({ success: false, message: 'No valid cart items found' });
     }
-    if (!bankAccount || !bankName) {
-      return res.status(400).json({ success: false, message: 'bankAccount and bankName required' });
+    
+    if (finalDeliveryMethod === 'delivery' && !deliveryAddress?.trim()) {
+      return res.status(400).json({ success: false, message: 'Delivery address required' });
     }
-    const deliveryMethod = cart.deliveryType || 'pickup';
-    if (deliveryMethod === 'delivery' && !deliveryAddress) {
-      return res.status(400).json({ success: false, message: 'deliveryAddress required for delivery orders' });
-    }
-
+    
+    const calculatedTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const orderTotal = Number(grandTotal) || calculatedTotal;
+    
+    // 4. Create order with EXPLICIT status
     const orderData = {
       user: req.user._id,
-      items: cart.items.map(item => ({
-        menuItem: item.menuItem._id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity
-      })),
-      totalAmount: cart.grandTotal,
-      deliveryMethod: deliveryMethod,
-      phoneNumber,
-      bankAccount,
-      bankName
+      items: cartItems,
+      totalAmount: orderTotal,
+      deliveryMethod: finalDeliveryMethod,
+      phoneNumber: phoneNumber.trim(),
+      bankAccount: bankAccount.trim(),
+      bankName: bankName.trim(),
+      orderStatus: 'pending_approval'  // EXPLICIT - was defaulting incorrectly
     };
-
-    if (deliveryMethod === 'delivery') {
-      orderData.deliveryAddress = deliveryAddress;
+    
+    if (finalDeliveryMethod === 'delivery') {
+      orderData.deliveryAddress = deliveryAddress.trim();
     }
-
+    
     const order = await Order.create(orderData);
-
-    // Decrement stock
-    for (let item of cart.items) {
-      await MenuItem.findByIdAndUpdate(item.menuItem._id, {
-        $inc: { stock: -item.quantity }
-      });
+    
+    // 5. Update stock & clear cart
+    for (let item of cartItems) {
+      await MenuItem.findByIdAndUpdate(item.menuItem, { $inc: { stock: -item.quantity } });
     }
-
-    // Clear DB cart if exists
-    if (cart._id) {
-      await Cart.findByIdAndUpdate(cart._id, { items: [], grandTotal: 0 });
-    }
-
-    // Email
-    await sendOrderConfirmation(order);
-
-    res.status(201).json({ success: true, data: order.toJSON({ virtuals: true }) });
+    
+    // Clear user cart
+    await Cart.findOneAndUpdate({ user: req.user._id }, { 
+      $set: { items: [], grandTotal: 0, subtotal: 0 } 
+    }).exec();
+    
+    // 6. Email (fire and forget)
+    sendOrderConfirmation(order).catch(console.error);
+    
+    // 7. Return FULL populated order
+    const populatedOrder = await Order.findById(order._id)
+      .populate('items.menuItem', 'name image price')
+      .lean();
+    
+    console.log(`✅ Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
+    
+    res.status(201).json({ 
+      success: true, 
+      data: populatedOrder 
+    });
+    
   } catch (error) {
-    console.error('Checkout error:', error);
-    res.status(400).json({ success: false, message: error.message });
+    console.error('Checkout ERROR:', error);
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || 'Checkout failed - please try again',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
