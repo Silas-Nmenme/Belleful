@@ -1,4 +1,4 @@
-﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 
@@ -130,8 +130,8 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     .header h1 { margin: 0; font-size: 36px; font-weight: 700; line-height: 1.1; text-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeIn 1s 0.2s both; }
     .header p { margin: 16px auto 0; max-width: 560px; color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 400; animation: fadeIn 1s 0.4s both; }
     
-.content { padding: 40px; color: #e5e5e5; line-height: 1.7; }
-.intro { font-size: 18px; margin-bottom: 28px; line-height: 1.8; font-weight: 400; color: #d1d5db; animation: fadeIn 1s 0.6s both; }
+    .content { padding: 40px; color: #1e293b; line-height: 1.7; }
+    .intro { font-size: 18px; margin-bottom: 28px; line-height: 1.8; font-weight: 400; color: #334155; animation: fadeIn 1s 0.6s both; }
     
 .card { 
       border: none; 
@@ -147,11 +147,11 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     .card:nth-child(3) { animation-delay: 0.4s; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     
-.section-title { 
+    .section-title { 
       margin: 0 0 20px 0; 
       font-size: 22px; 
       font-weight: 600; 
-      color: #f1f5f9; 
+      color: #0f172a; 
       display: flex; 
       align-items: center; 
       gap: 12px;
@@ -184,12 +184,12 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     
 table { width: 100%; border-collapse: collapse; margin: 24px 0; background: #2a2a2a; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: slideInRight 0.8s both; }
     @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-th { background: linear-gradient(135deg, #3a3a3a, #2a2a2a); padding: 18px 16px; text-align: left; font-weight: 600; color: #e5e5e5; border-bottom: none; }
-td { padding: 16px; border-bottom: 1px solid #3a3a3a; vertical-align: top; color: #e5e5e5; }
-tr:nth-child(even) td { background: #333333; }
-tr:hover td { background: #404040; }
+    th { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); padding: 18px 16px; text-align: left; font-weight: 600; color: #334155; border-bottom: none; }
+    td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:hover td { background: #eef2ff; }
     
-.progress-container { background: #404040; height: 8px; border-radius: 4px; margin: 24px 0; overflow: hidden; }
+    .progress-container { background: #e2e8f0; height: 8px; border-radius: 4px; margin: 24px 0; overflow: hidden; }
     .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; animation: progressFill 2s ease-out; }
     @keyframes progressFill { from { width: 0; } }
     
@@ -210,13 +210,13 @@ tr:hover td { background: #404040; }
     
     .order-total { font-size: 28px; font-weight: 700; color: #059669; text-align: center; margin: 24px 0; }
     
-.footer { 
+    .footer { 
       padding: 32px 40px 40px; 
       font-size: 14px; 
-      color: #b0b0b0; 
+      color: #64748b; 
       text-align: center; 
-      background: linear-gradient(145deg, #2a2a2a, #222222); 
-      border-top: 1px solid #3a3a3a;
+      background: linear-gradient(145deg, #f8fafc, #f1f5f9); 
+      border-top: 1px solid #e2e8f0;
     }
     .social-links { margin: 20px 0; }
     .social-links a { display: inline-block; margin: 0 12px; font-size: 20px; color: #475569; transition: color 0.3s; }
