@@ -351,6 +351,23 @@ const emailTemplates = {
     });
   },
 
+  contactReply: (name) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Thanks for reaching out!</h2>
+        <p>Hi ${name},</p>
+        <p>We’ve received your message and our support team is reviewing it now. We’ll get back to you within 24 hours.</p>
+        <p>If you need urgent assistance, feel free to reply to this email or contact us directly at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Message Received - Belleful',
+      intro: 'Thank you for contacting Belleful. We’re on it.',
+      body,
+      helpText: 'We appreciate your patience. A member of our team will respond shortly.'
+    });
+  },
+
   loginSuccess: (name, timestamp) => {
     const body = `
       <div class="card">

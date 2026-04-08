@@ -127,6 +127,40 @@ const sendLoginSuccessEmail = async (email, name) => {
   }
 };
 
+const sendPasswordResetEmail = async (email, name, resetUrl) => {
+  if (!transporter) return { success: false };
+
+  const html = emailTemplates.passwordReset(name, resetUrl);
+
+  return sendTemplateEmail(
+    email,
+    'Password Reset - Belleful',
+    html
+  );
+};
+
+const sendContactAdminNotification = async (contact) => {
+  const recipient = getAdminRecipient();
+  const html = emailTemplates.contactForm(contact.name, contact.email, contact.phone, contact.message.replace(/\n/g, '<br>'), contact.timestamp || new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+
+  return sendTemplateEmail(
+    recipient,
+    `New Contact Form Submission - ${contact.name}`,
+    html
+  );
+};
+
+const sendContactReply = async (email, name) => {
+  if (!transporter) return { success: false };
+
+  const html = emailTemplates.contactReply(name);
+  return sendTemplateEmail(
+    email,
+    'We Received Your Message - Belleful',
+    html
+  );
+};
+
 /**
  * Order Confirmation
  */
@@ -178,6 +212,9 @@ module.exports = {
   sendWelcomeEmail,
   sendTemplateEmail,
   sendLoginSuccessEmail,
+  sendPasswordResetEmail,
+  sendContactAdminNotification,
+  sendContactReply,
   sendOrderConfirmation,
   sendOrderAdminNotification,
   sendOrderStatusUpdate

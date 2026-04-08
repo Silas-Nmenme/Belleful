@@ -1,7 +1,6 @@
 const { body, validationResult } = require('express-validator');
 const Contact = require('../models/Contact');
-const emailService = require('../services/emailService');
-const emailTemplates = require('../utils/emailTemplates');
+const { sendContactAdminNotification, sendContactReply } = require('../services/emailService');
 
 /**
  * Contact Form Controller - Saves to DB + Email notification + Admin listing
@@ -30,24 +29,15 @@ const contactUs = [
       const contact = new Contact({ name, email, phone, message });
       await contact.save();
 
-      // Send admin email
-      const timestamp = new Date().toLocaleString();
-      const emailContent = emailTemplates.contactForm(name, email, phone, message.replace(/\n/g, '<br>'), timestamp);
-      const adminEmail = process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER;
-      const emailResult = await emailService.sendTemplateEmail(
-        adminEmail,
-        'New Contact Form: ' + name,
-        emailContent
-      );
+      await sendContactAdminNotification({
+        name,
+        email,
+        phone,
+        message,
+        timestamp: new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' })
+      });
 
-      // Auto-reply to user
-      const replyContent = `
-        <h2>Thank you for contacting Belleful! 📧</h2>
-        <p>Hi ${name},</p>
-        <p>We've received your message and will get back to you within 24 hours.</p>
-        <p>Best regards,<br>The Belleful Team 🍽️</p>
-      `;
-      await emailService.sendTemplateEmail(email, 'We Received Your Message - Belleful', replyContent);
+      await sendContactReply(email, name);
 
       res.json({ 
         success: true, 

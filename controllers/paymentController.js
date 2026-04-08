@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const { sendOrderStatusUpdate } = require('../services/emailService');
 
 /**
  * Payment Controller - Receipt Upload & Verification
@@ -33,6 +34,8 @@ exports.uploadReceipt = async (req, res) => {
     order.orderStatus = 'preparing';
 
     await order.save();
+
+    sendOrderStatusUpdate(order, 'preparing').catch(err => console.error('Payment receipt email failed:', err));
 
     res.json({ 
       success: true, 
