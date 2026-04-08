@@ -72,7 +72,7 @@ const renderOrderDetailsSection = (order) => {
       const status = order.paymentStatus || 'pending';
       const statusObj = colorByStatus(status);
       const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
-      return `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`;
+      return `<span style="color: ${statusObj.color}; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; padding: 10px 24px; border-radius: 50px;">${statusLabel}</span>`;
     })()
   );
 
@@ -97,7 +97,7 @@ const renderOrderDetailsSection = (order) => {
         const status = order.orderStatus;
         const statusObj = colorByStatus(status);
         const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
-        return buildInfoLine('Order Status:', `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`);
+        return buildInfoLine('Order Status:', `<span style="color: ${statusObj.color}; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; padding: 10px 24px; border-radius: 50px;">${statusLabel}</span>`);
       })()}
       ${buildInfoLine('Fulfillment:', deliveryTypeLabel)}
       ${deliveryInfo}
