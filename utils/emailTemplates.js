@@ -46,10 +46,18 @@ const colorByStatus = (status) => {
 
 const renderItemsTable = (items = []) => items.map(item => `
   <tr>
-    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef;">${item.name}</td>
-    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: center;">${item.quantity}</td>
-    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: right;">${formatCurrency(item.price)}</td>
-    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: right;">${formatCurrency(item.price * item.quantity)}</td>
+    <td style="padding: 18px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">🍲</span>
+        <div>
+          <div style="font-weight: 600; margin-bottom: 2px;">${item.name}</div>
+          <div style="color: #94a3b8; font-size: 13px;">⭐⭐⭐⭐⭐ Popular Choice</div>
+        </div>
+      </div>
+    </td>
+    <td style="padding: 18px 16px; text-align: center; font-weight: 600; color: #475569;">x${item.quantity}</td>
+    <td style="padding: 18px 16px; text-align: right; font-weight: 500;">${formatCurrency(item.price)}</td>
+    <td style="padding: 18px 16px; text-align: right; font-size: 16px; font-weight: 700; color: #059669;">${formatCurrency(item.price * item.quantity)}</td>
   </tr>`).join('');
 
 const renderOrderDetailsSection = (order) => {
@@ -99,38 +107,154 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
   <title>${title}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { margin: 0; padding: 0; background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .email-wrapper { width: 100%; background-color: #f4f6f9; padding: 24px 0; }
-    .email-content { max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #198754 0%, #0d6efd 100%); color: #ffffff; padding: 32px 32px 24px; text-align: center; }
-    .header h1 { margin: 0; font-size: 32px; line-height: 1.1; }
-    .header p { margin: 12px auto 0; max-width: 520px; color: rgba(255,255,255,.92); font-size: 16px; }
-    .content { padding: 32px; color: #343a40; }
-    .intro { font-size: 17px; margin-bottom: 22px; line-height: 1.75; }
-    .card { border: 1px solid #e9ecef; border-radius: 16px; padding: 22px; margin-bottom: 26px; background: #f8f9fa; }
-    .section-title { margin: 0 0 18px 0; font-size: 18px; color: #212529; }
-    .button { display: inline-block; padding: 14px 28px; border-radius: 999px; background: #0d6efd; color: #ffffff !important; text-decoration: none; font-size: 16px; font-weight: 700; }
-    .footer { padding: 24px 32px 32px; font-size: 14px; color: #6c757d; text-align: center; }
-    .footer a { color: #0d6efd; text-decoration: none; }
-    @media (max-width: 620px) { .email-content { border-radius: 0; } .header { padding: 24px 18px 18px; } .content { padding: 24px 18px; } }
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { margin: 0; padding: 0; background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%); min-height: 100vh; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .email-wrapper { width: 100%; background-color: #f8fafc; padding: 40px 20px; animation: fadeIn 1s ease-out; }
+    .email-content { max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.15); transform: translateY(0); animation: slideInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    
+    .header { 
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%); 
+      background-size: 200% 200%; 
+      animation: shimmer 3s ease-in-out infinite; 
+      color: #ffffff; padding: 48px 40px 36px; text-align: center; position: relative; overflow: hidden;
+    }
+    .header::before { content: '🍽️'; font-size: 64px; position: absolute; top: 20px; left: 40px; animation: float 3s ease-in-out infinite; opacity: 0.3; }
+    .header h1 { margin: 0; font-size: 36px; font-weight: 700; line-height: 1.1; text-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeIn 1s 0.2s both; }
+    .header p { margin: 16px auto 0; max-width: 560px; color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 400; animation: fadeIn 1s 0.4s both; }
+    
+    .content { padding: 40px; color: #1e293b; line-height: 1.7; }
+    .intro { font-size: 18px; margin-bottom: 28px; line-height: 1.8; font-weight: 400; color: #334155; animation: fadeIn 1s 0.6s both; }
+    
+    .card { 
+      border: none; 
+      border-radius: 20px; 
+      padding: 28px; 
+      margin-bottom: 32px; 
+      background: linear-gradient(145deg, #ffffff, #f8fafc); 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.08); 
+      animation: fadeInUp 0.8s ease-out both;
+      transform-origin: top;
+    }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .section-title { 
+      margin: 0 0 20px 0; 
+      font-size: 22px; 
+      font-weight: 600; 
+      color: #0f172a; 
+      display: flex; 
+      align-items: center; 
+      gap: 12px;
+    }
+    
+    .otp-code { 
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+      color: white; 
+      font-size: 42px; 
+      font-weight: 700; 
+      letter-spacing: 12px; 
+      text-align: center; 
+      padding: 28px; 
+      border-radius: 20px; 
+      margin: 24px 0; 
+      animation: pulse 2s infinite, fadeIn 1s both; 
+      box-shadow: 0 20px 60px rgba(59,130,246,0.3);
+    }
+    
+    .status-badge { 
+      display: inline-block; 
+      padding: 8px 20px; 
+      border-radius: 50px; 
+      font-weight: 600; 
+      font-size: 14px; 
+      animation: pulse 2s infinite; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px;
+    }
+    
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: slideInRight 0.8s both; }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+    th { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); padding: 18px 16px; text-align: left; font-weight: 600; color: #334155; border-bottom: none; }
+    td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:hover td { background: #eef2ff; }
+    
+    .progress-container { background: #e2e8f0; height: 8px; border-radius: 4px; margin: 24px 0; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; animation: progressFill 2s ease-out; }
+    @keyframes progressFill { from { width: 0; } }
+    
+    .button { 
+      display: inline-block; 
+      padding: 16px 36px; 
+      border-radius: 50px; 
+      background: linear-gradient(135deg, #3b82f6, #1e40af); 
+      color: #ffffff !important; 
+      text-decoration: none; 
+      font-size: 16px; 
+      font-weight: 600; 
+      box-shadow: 0 10px 30px rgba(59,130,246,0.4); 
+      transition: all 0.3s ease; 
+      animation: fadeIn 1s 0.8s both;
+    }
+    .button:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 15px 40px rgba(59,130,246,0.5); }
+    
+    .order-total { font-size: 28px; font-weight: 700; color: #059669; text-align: center; margin: 24px 0; }
+    
+    .footer { 
+      padding: 32px 40px 40px; 
+      font-size: 14px; 
+      color: #64748b; 
+      text-align: center; 
+      background: linear-gradient(145deg, #f8fafc, #f1f5f9); 
+      border-top: 1px solid #e2e8f0;
+    }
+    .social-links { margin: 20px 0; }
+    .social-links a { display: inline-block; margin: 0 12px; font-size: 20px; color: #475569; transition: color 0.3s; }
+    .social-links a:hover { color: #3b82f6; transform: scale(1.2); }
+    
+    @media (max-width: 640px) { 
+      .email-content { border-radius: 0; margin: 0 10px; } 
+      .header { padding: 36px 24px 28px; } 
+      .header h1 { font-size: 28px; }
+      .content { padding: 28px 24px; } 
+      .card { padding: 24px; }
+      table { font-size: 14px; }
+      td, th { padding: 12px 8px; }
+    }
   </style>
 </head>
 <body>
   <div class="email-wrapper">
     <div class="email-content">
-      <div class="header">
-        <h1>${title}</h1>
+<div class="header">
+        <h1>Belleful 🍽️<br><small style="font-size: 0.6em; font-weight: 400; opacity: 0.95;">${title}</small></h1>
         <p>${intro}</p>
+        <p style="margin-top: 16px; opacity: 0.9; font-size: 15px;">Fast, Fresh Food Delivery & Pickup • Lagos, Nigeria</p>
       </div>
       <div class="content">
         ${body}
-        ${ctaLabel && ctaUrl ? `<div style="text-align:center; margin: 28px 0;"><a href="${ctaUrl}" class="button">${ctaLabel}</a></div>` : ''}
+        ${ctaLabel && ctaUrl ? `<div style="text-align:center; margin: 36px 0;"><a href="${ctaUrl}" class="button" style="box-shadow: 0 12px 35px rgba(59,130,246,0.4);">${ctaLabel} 🚀</a></div>` : ''}
         ${helpText ? `<div class="card"><p style="margin:0; line-height:1.75;">${helpText}</p></div>` : ''}
       </div>
-      <div class="footer">
-        <p>Need help? Reach out at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-        <p>© 2026 Belleful. Trusted food delivery and pickup.</p>
+<div class="footer">
+        <div class="social-links">
+          <a href="${FRONTEND_URL}" aria-label="Home" style="font-size: 24px; margin: 0 8px;">🏠</a>
+          <a href="https://instagram.com/bellefulchop" aria-label="Instagram" style="font-size: 24px; margin: 0 8px;">📸</a>
+          <a href="https://facebook.com/bellefulchop" aria-label="Facebook" style="font-size: 24px; margin: 0 8px;">📘</a>
+          <a href="https://twitter.com/bellefulchop" aria-label="Twitter" style="font-size: 24px; margin: 0 8px;">🐦</a>
+        </div>
+        <p style="margin: 24px 0 8px 0;">Questions? <a href="mailto:${SUPPORT_EMAIL}" style="color: #3b82f6; font-weight: 600;">${SUPPORT_EMAIL}</a> | +234 800 235 5385</p>
+        <p style="margin: 12px 0 0 0; font-size: 13px; opacity: 0.7;">© 2026 Belleful Chop. All rights reserved. <a href="${FRONTEND_URL}/unsubscribe" style="color: #94a3b8;">Update preferences</a></p>
       </div>
     </div>
   </div>
@@ -143,7 +267,7 @@ const emailTemplates = {
       <div class="card">
         <h2 class="section-title">Verify your email</h2>
         <p style="margin-bottom: 18px;">Hi ${name}, thank you for registering with Belleful. Use the code below to confirm your email address.</p>
-        <div style="background: linear-gradient(135deg, #0d6efd, #6610f2); color: white; font-size: 34px; letter-spacing: 10px; text-align: center; padding: 22px 0; border-radius: 16px; margin: 18px 0;">${otp}</div>
+        <div class="otp-code">${otp}</div>
         <p style="margin:0; color:#6c757d;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
       </div>`;
 
