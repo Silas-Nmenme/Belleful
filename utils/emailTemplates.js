@@ -1,4 +1,4 @@
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
+﻿﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 
@@ -33,15 +33,15 @@ const statusLabels = {
 
 const colorByStatus = (status) => {
   const palette = {
-    pending_payment: '#ffc107',
-    pending_approval: '#17a2b8',
-    preparing: '#fd7e14',
-    ready_for_pickup: '#0dcaf0',
-    out_for_delivery: '#0d6efd',
-    delivered: '#198754',
-    cancelled: '#dc3545'
+    pending_payment: { bgColor: '#F59E0B', color: '#FFFFFF' },
+    pending_approval: { bgColor: '#0891B2', color: '#FFFFFF' },
+    preparing: { bgColor: '#DC2626', color: '#FEE2E2' },
+    ready_for_pickup: { bgColor: '#059669', color: '#FFFFFF' },
+    out_for_delivery: { bgColor: '#1D4ED8', color: '#FFFFFF' },
+    delivered: { bgColor: '#166534', color: '#FFFFFF' },
+    cancelled: { bgColor: '#991B1B', color: '#FEF2F2' }
   };
-  return palette[status] || '#6c757d';
+  return palette[status] || { bgColor: '#6B7280', color: '#FFFFFF' };
 };
 
 const renderItemsTable = (items = []) => items.map(item => `
@@ -68,7 +68,12 @@ const renderOrderDetailsSection = (order) => {
 
   const paymentInfo = buildInfoLine(
     'Payment Status:',
-    order.paymentStatus ? statusLabels[order.paymentStatus] || order.paymentStatus.replace(/_/g, ' ').toUpperCase() : 'Pending'
+    (() => {
+      const status = order.paymentStatus || 'pending';
+      const statusObj = colorByStatus(status);
+      const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
+      return `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`;
+    })()
   );
 
   const paymentReferenceInfo = order.paymentReference
@@ -88,7 +93,12 @@ const renderOrderDetailsSection = (order) => {
       <h3 style="font-size: 18px; color: #343a40; margin-bottom: 12px;">Order & Delivery Details</h3>
       ${buildInfoLine('Order Number:', order.displayId || '#'+order._id.toString().slice(-6))}
       ${buildInfoLine('Order Date:', formatDate(order.createdAt))}
-      ${buildInfoLine('Order Status:', statusLabels[order.orderStatus] || order.orderStatus.replace(/_/g, ' ').toUpperCase())}
+      ${(() => {
+        const status = order.orderStatus;
+        const statusObj = colorByStatus(status);
+        const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
+        return buildInfoLine('Order Status:', `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`);
+      })()}
       ${buildInfoLine('Fulfillment:', deliveryTypeLabel)}
       ${deliveryInfo}
       ${buildInfoLine('Customer Phone:', order.phoneNumber)}
@@ -112,7 +122,7 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     
     body { margin: 0; padding: 0; background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%); min-height: 100vh; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .email-wrapper { width: 100%; background-color: #f8fafc; padding: 40px 20px; animation: fadeIn 1s ease-out; }
-.email-content { max-width: 700px; margin: 0 auto; background: #1a1a1a; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.4); transform: translateY(0); animation: slideInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .email-content { max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.15); transform: translateY(0); animation: slideInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
     
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
@@ -133,13 +143,13 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     .content { padding: 40px; color: #1e293b; line-height: 1.7; }
     .intro { font-size: 18px; margin-bottom: 28px; line-height: 1.8; font-weight: 400; color: #334155; animation: fadeIn 1s 0.6s both; }
     
-.card { 
+    .card { 
       border: none; 
       border-radius: 20px; 
       padding: 28px; 
       margin-bottom: 32px; 
-      background: linear-gradient(145deg, #2a2a2a, #1a1a1a); 
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+      background: linear-gradient(145deg, #ffffff, #f8fafc); 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.08); 
       animation: fadeInUp 0.8s ease-out both;
       transform-origin: top;
     }
@@ -172,17 +182,18 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
     }
     
     .status-badge { 
-      display: inline-block; 
-      padding: 8px 20px; 
-      border-radius: 50px; 
-      font-weight: 600; 
-      font-size: 14px; 
+      display: inline-flex; align-items: center; gap: 6px; 
+      padding: 10px 24px; border-radius: 50px; 
+      font-weight: 700; font-size: 14px; 
       animation: pulse 2s infinite; 
-      text-transform: uppercase; 
-      letter-spacing: 0.5px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      background: var(--status-bg, #6c757d); 
+      color: var(--status-color, #fff);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-family: inherit;
     }
     
-table { width: 100%; border-collapse: collapse; margin: 24px 0; background: #2a2a2a; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: slideInRight 0.8s both; }
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: slideInRight 0.8s both; }
     @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
     th { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); padding: 18px 16px; text-align: left; font-weight: 600; color: #334155; border-bottom: none; }
     td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
