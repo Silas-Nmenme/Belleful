@@ -1,7 +1,7 @@
 const { body, validationResult } = require('express-validator');
 const Contact = require('../models/Contact');
 const emailService = require('../services/emailService');
-const { emailTemplates } = require('../utils/emailTemplates');
+const emailTemplates = require('../utils/emailTemplates');
 
 /**
  * Contact Form Controller - Saves to DB + Email notification + Admin listing

@@ -1,559 +1,374 @@
-// utils/emailTemplates.js - Professional Bootstrap Food Ordering Templates
+﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 
-const emailTemplates = {
-  // 1. OTP Verification (Already good, enhanced)
-  otpVerification: (name, otp) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Verify Your Belleful Account</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); animation: gradientShift 10s ease infinite; background-size: 400% 400%; }
-    @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-    .main-container { max-width: 500px; margin: 40px auto; animation: fadeIn 1s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 30px; border-radius: 20px 20px 0 0; text-align: center; overflow: hidden; position: relative; }
-    .hero::before { content: '🍽️'; position: absolute; top: -20px; right: -20px; font-size: 40px; animation: steamRise 3s ease-in-out infinite; opacity: 0.8; }
-    .hero i { animation: spinUtensils 3s linear infinite; }
-    @keyframes spinUtensils { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(90deg); } 50% { transform: rotate(180deg); } 75% { transform: rotate(270deg); } }
-    @keyframes steamRise { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; } 50% { transform: translateY(-20px) scale(1.2); opacity: 1; } }
-    .otp-card { background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: slideInUp 0.8s ease-out; }
-    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .otp-display { background: linear-gradient(135deg, #007bff, #0056b3); color: white; font-size: 36px; font-weight: bold; letter-spacing: 8px; padding: 25px; border-radius: 15px; margin: 30px 0; text-align: center; animation: pulseGlow 2s ease-in-out infinite alternate, bounce 1s infinite; box-shadow: 0 0 20px rgba(0,123,255,0.5); }
-    @keyframes pulseGlow { from { box-shadow: 0 0 20px rgba(0,123,255,0.5); } to { box-shadow: 0 0 40px rgba(0,123,255,0.8), 0 0 60px rgba(0,123,255,0.4); } }
-    @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
-  </style>
-
-</head>
-<body>
-  <div class="main-container">
-    <div class="hero">
-      <i class="fas fa-utensils fa-3x mb-3 d-block"></i>
-      <h1>Welcome to <strong>Belleful</strong>! 🍽️</h1>
-    </div>
-    <div class="otp-card">
-      <h3 class="text-center mb-4">Verify Your Email</h3>
-      <div class="otp-display">${otp}</div>
-      <p class="text-center text-muted mb-4">Your verification code is valid for 10 minutes.</p>
-      <div class="text-center">
-        <small class="text-muted">Don't share this code with anyone.</small>
-      </div>
-      <hr class="my-4">
-      <div class="text-center">
-        <p class="mb-0"><i class="fas fa-heart text-danger"></i> © 2026 Belleful - Delicious Food Delivered</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-  `,
-
-  // 2. Welcome Email
-  welcome: (name) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Welcome to Belleful!</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; animation: gradientShift 15s ease infinite; background-size: 400% 400%; }
-    @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 50px 30px; position: relative; overflow: hidden; }
-    .hero i { animation: bouncePlate 2s ease-in-out infinite; }
-    @keyframes bouncePlate { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-10px); } }
-    .hero::after { content: '✨'; position: absolute; bottom: 10px; right: 20px; font-size: 24px; animation: sparkle 2s linear infinite; }
-    @keyframes sparkle { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.2); } }
-    .btn-order { background: linear-gradient(135deg, #ff6b6b, #ee5a52); border: none; padding: 15px 40px; font-size: 18px; border-radius: 50px; font-weight: 600; animation: pulseButton 2s infinite; transition: all 0.3s ease; }
-    @keyframes pulseButton { 0% { box-shadow: 0 0 0 0 rgba(255,107,107,0.7); } 70% { box-shadow: 0 0 0 10px rgba(255,107,107,0); } 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); } }
-    .features { background: white; margin: 30px 0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: slideInLeft 1s ease-out; }
-    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
-    .features i { transition: transform 0.3s ease; }
-    .features:hover i { transform: scale(1.2) rotate(10deg); }
-  </style>
-
-</head>
-<body>
-  <div class="container-fluid p-0">
-    <div class="hero text-center">
-      <i class="fas fa-utensils fa-4x mb-4 d-block"></i>
-      <h1 class="display-4 fw-bold mb-3">Welcome ${name}!</h1>
-      <p class="lead mb-4">Your Belleful account is ready. Time to explore delicious meals!</p>
-    </div>
-    
-    <div class="container py-5">
-      <div class="features mx-auto" style="max-width: 600px;">
-        <div class="row g-0">
-          <div class="col-md-4 text-center p-4 border-end">
-            <i class="fas fa-search fa-2x text-warning mb-3"></i>
-            <h5>Browse Menu</h5>
-            <p class="small text-muted">Discover amazing dishes</p>
-          </div>
-          <div class="col-md-4 text-center p-4 border-end">
-            <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
-            <h5>Add to Cart</h5>
-            <p class="small text-muted">Quick & easy checkout</p>
-          </div>
-          <div class="col-md-4 text-center p-4">
-            <i class="fas fa-truck fa-2x text-success mb-3"></i>
-            <h5>Fast Delivery</h5>
-            <p class="small text-muted">Hot food at your door</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="text-center mt-5">
-        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}" class="btn btn-order btn-lg text-white text-decoration-none">
-          <i class="fas fa-spa fa-xs me-2"></i>
-          Start Ordering Now!
-        </a>
-      </div>
-    </div>
-
-    <div class="text-center py-4 bg-light">
-      <small class="text-muted">
-        <i class="fas fa-heart text-danger me-1"></i>
-        Made with ❤️ for food lovers | © 2026 Belleful
-      </small>
-    </div>
-  </div>
-</body>
-</html>
-  `,
-
-  // 3. Order Confirmation
-  orderConfirmation: (order) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Order Confirmed - #${order._id.toString().slice(-6)}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; animation: fadeInBody 1.5s ease-out; }
-    @keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
-    .hero { background: linear-gradient(135deg, #28a745, #20c997); color: white; position: relative; overflow: hidden; }
-    .hero i { animation: pulseCheck 1.5s ease-in-out infinite; }
-    @keyframes pulseCheck { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    .hero::before { content: '🎉'; position: absolute; top: 20px; left: 20px; font-size: 30px; animation: bounce 2s infinite; }
-    @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-15px); } 60% { transform: translateY(-8px); } }
-    .order-card { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: slideInUp 0.8s ease-out; }
-    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .item-row { border-bottom: 1px solid #eee; padding: 15px 0; transition: background 0.3s ease; }
-    .item-row:hover { background: #f8f9fa; transform: translateX(5px); }
-    .btn-success { animation: pulseButton 2s infinite; }
-  </style>
-
-</head>
-<body>
-  <div class="container py-5">
-    <div class="hero text-center py-5 rounded-top">
-      <i class="fas fa-check-circle fa-4x mb-4 d-block"></i>
-      <h1 class="display-5 fw-bold">Order Confirmed!</h1>
-      <h3 class="mb-0">#${order._id.slice(-6).toUpperCase()}</h3>
-    </div>
-
-    <div class="order-card mx-auto mt-n4 p-4" style="max-width: 600px;">
-      <div class="row">
-        <div class="col-md-6">
-          <h5><i class="fas fa-${order.deliveryMethod === 'pickup' ? 'store-alt' : 'map-marker-alt'} text-success me-2"></i>${order.deliveryMethod === 'pickup' ? 'Pickup Info' : 'Delivery Info'}</h5>
-          <p class="mb-1"><strong>${order.user?.name || 'Customer'}</strong></p>
-          ${order.deliveryMethod === 'pickup' ? `<p class="mb-1"><strong>Pickup:</strong> ${order.pickupLocation}</p>` : `<p class="mb-1">${order.deliveryAddress}</p>`}
-          <p class="mb-0">${order.phoneNumber}</p>
-        </div>
-        <div class="col-md-6 text-end">
-          <h4 class="text-success mb-1">₦${order.totalAmount.toLocaleString()}</h4>
-          <p class="text-muted mb-0">${order.items.length} items</p>
-        </div>
-      </div>
-
-      <hr>
-
-      <h5>Your Order</h5>
-      ${order.items.map(item => `
-        <div class="item-row d-flex align-items-center">
-          <div class="flex-grow-1">
-            <strong>${item.name}</strong>
-            <br><small class="text-muted">₦${item.price.toLocaleString()} × ${item.quantity}</small>
-          </div>
-          <div class="text-end">
-            <strong>₦${(item.price * item.quantity).toLocaleString()}</strong>
-          </div>
-        </div>
-      `).join('')}
-
-      <div class="border-top pt-3 mt-3">
-        <div class="d-flex justify-content-between">
-          <span>Total Amount:</span>
-          <strong class="text-success fs-4">₦${order.totalAmount.toLocaleString()}</strong>
-        </div>
-      </div>
-
-      <div class="text-center mt-4">
-        <p class="text-muted mb-3">Track your order in Dashboard</p>
-        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}/login.html" class="btn btn-success btn-lg">
-          <i class="fas fa-tachometer-alt me-2"></i>View Orders
-        </a>
-      </div>
-    </div>
-
-    <div class="text-center mt-5">
-      <small class="text-muted">
-        <i class="fas fa-utensils me-2"></i>© 2026 Belleful - ${order.deliveryMethod === 'pickup' ? 'Ready for Pickup' : 'Fast Delivery'}
-      </small>
-    </div>
-  </div>
-</body>
-</html>
-  `,
-
-  // 4. Order Status Update
-  orderStatusUpdate: (order, status) => {
-    const statusConfig = {
-      preparing: { icon: 'fa-fire', color: 'warning', title: 'Cooking in Progress' },
-      ready_for_pickup: { icon: 'fa-utensils', color: 'info', title: 'Ready for Pickup' },
-      out_for_delivery: { icon: 'fa-shipping-fast', color: 'primary', title: 'Out for Delivery' },
-      delivered: { icon: 'fa-check-circle', color: 'success', title: 'Delivered!' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.preparing;
-    
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Order Update - #${order._id.slice(-6)}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; }
-    .hero { background: linear-gradient(135deg, ${config.color === 'success' ? '#28a745' : config.color === 'warning' ? '#ffc107' : config.color === 'info' ? '#17a2b8' : '#007bff'}, #20c997); color: white; }
-  </style>
-</head>
-<body>
-  <div class="container py-5">
-    <div class="hero text-center py-5 rounded">
-      <i class="fas ${config.icon} fa-5x mb-4 d-block"></i>
-      <h1 class="display-5 fw-bold">${config.title}</h1>
-      <h3 class="mb-0">#${order._id.slice(-6).toUpperCase()}</h3>
-    </div>
-    
-    <div class="card mx-auto mt-n4 shadow-lg" style="max-width: 500px; border-radius: 20px;">
-      <div class="card-body p-5 text-center">
-        <p class="lead mb-4">Your order is now <strong>${status.replace('_', ' ').toUpperCase()}</strong></p>
-        <div class="row g-3 mb-4">
-          ${order.items.slice(0,3).map(item => `
-            <div class="col-12">
-              <small class="text-muted">${item.name} × ${item.quantity}</small>
-            </div>
-          `).join('')}
-        </div>
-        <a href="${process.env.FRONTEND_URL}/dashboard" class="btn btn-primary btn-lg px-5">
-          <i class="fas fa-tachometer-alt me-2"></i>Track Order
-        </a>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-    `;
-  },
-
-  // 5. Password Reset (from authController)
-  passwordReset: (name, resetUrl) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Reset Password - Belleful</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { background: linear-gradient(135deg, #ff6b6b, #feca57); }
-    .hero { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
-  </style>
-</head>
-<body>
-  <div class="container py-5">
-    <div class="hero text-center py-5 rounded-top">
-      <i class="fas fa-key fa-4x mb-4 d-block"></i>
-      <h1 class="display-5">Reset Your Password</h1>
-    </div>
-    <div class="card mx-auto mt-n4 p-5 shadow" style="max-width: 500px; border-radius: 0 0 20px 20px;">
-      <p class="text-center mb-4">Hi <strong>${name}</strong>,</p>
-      <p class="text-center text-muted mb-4">Click below to reset your Belleful password. This link expires in 1 hour.</p>
-      <div class="text-center">
-        <a href="${resetUrl}" class="btn btn-danger btn-lg px-5 mb-3" style="border-radius: 50px;">
-          <i class="fas fa-lock-open me-2"></i>Reset Password
-        </a>
-      </div>
-      <div class="text-center">
-        <small class="text-muted">Didn't request this? Ignore this email.</small>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-  `,
-
-  // 6. Contact Form Reply (existing)
-  contactForm: (name, email, phone, message, timestamp) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>New Contact Form - Belleful</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; }
-    .card { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-  </style>
-</head>
-<body>
-  <div class="container py-5">
-    <div class="card mx-auto" style="max-width: 600px;">
-      <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #28a745, #20c997)!important;">
-        <i class="fas fa-envelope fa-3x mb-3"></i>
-        <h2>New Contact Submission</h2>
-      </div>
-      <div class="card-body p-5">
-        <div class="row mb-4">
-          <div class="col-md-6">
-            <strong><i class="fas fa-user me-2"></i>Name:</strong><br>${name}
-          </div>
-          <div class="col-md-6">
-            <strong><i class="fas fa-envelope me-2"></i>Email:</strong><br>${email}
-          </div>
-        </div>
-        <div class="mb-4">
-          <strong><i class="fas fa-phone me-2"></i>Phone:</strong><br>${phone}
-        </div>
-        <div class="mb-4">
-          <strong><i class="fas fa-comment me-2"></i>Message:</strong>
-          <div class="bg-light p-4 rounded mt-2" style="white-space: pre-wrap; min-height: 100px; border-left: 4px solid #28a745;">
-            ${message}
-          </div>
-        </div>
-        <div class="text-muted text-end small">
-          Submitted: ${timestamp}
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-  `
+const formatCurrency = (value) => {
+  const amount = Number(value || 0);
+  return `₦${amount.toLocaleString('en-NG', { maximumFractionDigits: 2 })}`;
 };
 
-  loginSuccess: (name, timestamp) => `
+const formatDate = (value) => {
+  const date = value ? new Date(value) : new Date();
+  return date.toLocaleString('en-US', {
+    timeZone: 'Africa/Lagos',
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const buildInfoLine = (label, value) => `<p style="margin: 0 0 6px 0;"><strong>${label}</strong> ${value || '<span style="color:#6c757d;">Not provided</span>'}</p>`;
+
+const statusLabels = {
+  pending_payment: 'Pending Payment',
+  pending_approval: 'Pending Approval',
+  preparing: 'Preparing',
+  ready_for_pickup: 'Ready for Pickup',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled'
+};
+
+const colorByStatus = (status) => {
+  const palette = {
+    pending_payment: '#ffc107',
+    pending_approval: '#17a2b8',
+    preparing: '#fd7e14',
+    ready_for_pickup: '#0dcaf0',
+    out_for_delivery: '#0d6efd',
+    delivered: '#198754',
+    cancelled: '#dc3545'
+  };
+  return palette[status] || '#6c757d';
+};
+
+const renderItemsTable = (items = []) => items.map(item => `
+  <tr>
+    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef;">${item.name}</td>
+    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: center;">${item.quantity}</td>
+    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: right;">${formatCurrency(item.price)}</td>
+    <td style="padding: 12px 10px; border-bottom: 1px solid #e9ecef; text-align: right;">${formatCurrency(item.price * item.quantity)}</td>
+  </tr>`).join('');
+
+const renderOrderDetailsSection = (order) => {
+  const deliveryTypeLabel = order.deliveryMethod === 'delivery' ? 'Delivery' : 'Pickup';
+  const deliveryInfo = order.deliveryMethod === 'delivery'
+    ? buildInfoLine('Delivery Address:', order.deliveryAddress)
+    : buildInfoLine('Pickup Location:', order.pickupLocation || 'Belleful Restaurant - Main Branch');
+
+  const paymentInfo = buildInfoLine(
+    'Payment Status:',
+    order.paymentStatus ? statusLabels[order.paymentStatus] || order.paymentStatus.replace(/_/g, ' ').toUpperCase() : 'Pending'
+  );
+
+  const paymentReferenceInfo = order.paymentReference
+    ? buildInfoLine('Payment Reference:', order.paymentReference)
+    : '';
+
+  const manualBankInfo = order.bankName && order.bankAccount
+    ? `<div style="margin-top: 8px;">
+        <p style="margin: 0 0 6px 0;"><strong>Payment Method:</strong> Bank Transfer</p>
+        <p style="margin: 0 0 6px 0;"><strong>Bank:</strong> ${order.bankName}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Account:</strong> ${order.bankAccount}</p>
+      </div>`
+    : '';
+
+  return `
+    <div style="margin-bottom: 24px;">
+      <h3 style="font-size: 18px; color: #343a40; margin-bottom: 12px;">Order & Delivery Details</h3>
+      ${buildInfoLine('Order Number:', order.displayId || '#'+order._id.toString().slice(-6))}
+      ${buildInfoLine('Order Date:', formatDate(order.createdAt))}
+      ${buildInfoLine('Order Status:', statusLabels[order.orderStatus] || order.orderStatus.replace(/_/g, ' ').toUpperCase())}
+      ${buildInfoLine('Fulfillment:', deliveryTypeLabel)}
+      ${deliveryInfo}
+      ${buildInfoLine('Customer Phone:', order.phoneNumber)}
+      ${paymentInfo}
+      ${paymentReferenceInfo}
+      ${manualBankInfo}
+      ${order.notes ? `<p style="margin: 10px 0 0 0; color: #495057;"><strong>Order Notes:</strong> ${order.notes}</p>` : ''}
+    </div>`;
+};
+
+const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, preheaderText }) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Login Successful - Belleful 🍽️</title>
+  <title>${title}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #feca57); 
-      background-size: 400% 400%; 
-      animation: gradientShift 15s ease infinite; 
-      min-height: 100vh;
-    }
-    @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    
-    .main-hero { 
-      max-width: 600px; 
-      margin: 40px auto; 
-      animation: fadeInUp 1.2s ease-out; 
-    }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .food-hero { 
-      background: linear-gradient(135deg, #28a745, #20c997, #17a2b8); 
-      color: white; 
-      padding: 50px 30px; 
-      border-radius: 30px; 
-      text-align: center; 
-      position: relative; 
-      overflow: hidden; 
-      box-shadow: 0 25px 50px rgba(40, 167, 69, 0.4);
-      animation: heroPulse 3s ease-in-out infinite;
-    }
-    @keyframes heroPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-    
-    .food-hero i.fa-utensils { 
-      font-size: 5rem; 
-      animation: spinUtensils 4s linear infinite, bounceIn 2s ease-out; 
-      text-shadow: 0 0 20px rgba(255,255,255,0.8);
-    }
-    @keyframes spinUtensils { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
-    
-    .steam-effect { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 3rem; opacity: 0.6; animation: steamRise 3s ease-in-out infinite; }
-    @keyframes steamRise { 0%, 100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.3; } 50% { transform: translateX(-50%) translateY(-30px) scale(1.3); opacity: 0.8; } }
-    
-    .success-card { 
-      background: white; 
-      margin-top: -30px; 
-      border-radius: 0 0 30px 30px; 
-      padding: 50px 40px; 
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15); 
-      animation: slideInUp 1s ease-out 0.5s both;
-    }
-    @keyframes slideInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .check-circle { 
-      font-size: 4rem; 
-      color: #28a745; 
-      animation: pulseCheck 2s ease-in-out infinite, float 3s ease-in-out infinite;
-    }
-    @keyframes pulseCheck { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40,167,69,0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(40,167,69,0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40,167,69,0); } }
-    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-    
-    .food-features { 
-      display: flex; 
-      gap: 20px; 
-      margin: 40px 0; 
-      justify-content: center; 
-      flex-wrap: wrap; 
-    }
-    .food-item { 
-      text-align: center; 
-      padding: 20px; 
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef); 
-      border-radius: 20px; 
-      min-width: 120px; 
-      animation: slideInLeft 1.5s ease-out forwards;
-      opacity: 0;
-    }
-    .food-item:nth-child(1) { animation-delay: 0.8s; }
-    .food-item:nth-child(2) { animation-delay: 1s; }
-    .food-item:nth-child(3) { animation-delay: 1.2s; }
-    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
-    
-    .food-item i { font-size: 2.5rem; animation: iconWobble 2s ease-in-out infinite 1s; }
-    @keyframes iconWobble { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
-    
-    .cta-button { 
-      background: linear-gradient(135deg, #ff6b6b, #ee5a52); 
-      border: none; 
-      padding: 18px 50px; 
-      font-size: 20px; 
-      border-radius: 50px; 
-      font-weight: 700; 
-      color: white; 
-      text-decoration: none; 
-      display: inline-block; 
-      animation: pulseButton 2.5s infinite, shake 0.5s ease-in-out 2s both;
-      box-shadow: 0 10px 30px rgba(255,107,107,0.4);
-      transition: all 0.3s ease;
-    }
-    @keyframes pulseButton { 0% { box-shadow: 0 0 0 0 rgba(255,107,107,0.7); } 70% { box-shadow: 0 0 0 25px rgba(255,107,107,0); } 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); } }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
-    
-    .footer { 
-      background: rgba(255,255,255,0.9); 
-      padding: 30px; 
-      border-radius: 20px; 
-      margin-top: 40px; 
-      text-align: center; 
-      animation: fadeIn 2s ease-out 1.5s both;
-    }
-    .timestamp { 
-      background: linear-gradient(135deg, #28a745, #20c997); 
-      color: white; 
-      padding: 10px 20px; 
-      border-radius: 25px; 
-      display: inline-block; 
-      font-size: 14px; 
-      animation: glowPulse 2s infinite;
-    }
-    @keyframes glowPulse { 0% { box-shadow: 0 0 5px rgba(40,167,69,0.5); } 50% { box-shadow: 0 0 20px rgba(40,167,69,0.8); } 100% { box-shadow: 0 0 5px rgba(40,167,69,0.5); } }
-    
-    @media (max-width: 768px) { 
-      .food-features { flex-direction: column; align-items: center; } 
-      .food-item { min-width: 200px; }
-    }
+    body { margin: 0; padding: 0; background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .email-wrapper { width: 100%; background-color: #f4f6f9; padding: 24px 0; }
+    .email-content { max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #198754 0%, #0d6efd 100%); color: #ffffff; padding: 32px 32px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 32px; line-height: 1.1; }
+    .header p { margin: 12px auto 0; max-width: 520px; color: rgba(255,255,255,.92); font-size: 16px; }
+    .content { padding: 32px; color: #343a40; }
+    .intro { font-size: 17px; margin-bottom: 22px; line-height: 1.75; }
+    .card { border: 1px solid #e9ecef; border-radius: 16px; padding: 22px; margin-bottom: 26px; background: #f8f9fa; }
+    .section-title { margin: 0 0 18px 0; font-size: 18px; color: #212529; }
+    .button { display: inline-block; padding: 14px 28px; border-radius: 999px; background: #0d6efd; color: #ffffff !important; text-decoration: none; font-size: 16px; font-weight: 700; }
+    .footer { padding: 24px 32px 32px; font-size: 14px; color: #6c757d; text-align: center; }
+    .footer a { color: #0d6efd; text-decoration: none; }
+    @media (max-width: 620px) { .email-content { border-radius: 0; } .header { padding: 24px 18px 18px; } .content { padding: 24px 18px; } }
   </style>
 </head>
 <body>
-  <div class="main-hero">
-    <!-- Food Hero Section with Heavy Animations -->
-    <div class="food-hero">
-      <div class="steam-effect">☁️</div>
-      <i class="fas fa-utensils food-icon"></i>
-      <h1 class="display-4 fw-bold mb-4 animate__animated animate__bounceIn">Welcome Back <strong>${name}!</strong> 🍕🍔</h1>
-      <p class="lead mb-0">You have successfully logged into Belleful!</p>
-    </div>
-    
-    <!-- Success Card -->
-    <div class="success-card">
-      <div class="check-circle mb-4">
-        <i class="fas fa-check-circle"></i>
+  <div class="email-wrapper">
+    <div class="email-content">
+      <div class="header">
+        <h1>${title}</h1>
+        <p>${intro}</p>
       </div>
-      
-      <h2 class="text-success mb-4">Login Successful ✅</h2>
-      <p class="lead mb-4 text-center">Your session is active. Ready to order your favorite meals!</p>
-      
-      <!-- Food Features Section -->
-      <div class="food-features">
-        <div class="food-item">
-          <i class="fas fa-hamburger text-warning"></i>
-          <h6>Hot Meals</h6>
-          <small>Browse Menu</small>
-        </div>
-        <div class="food-item">
-          <i class="fas fa-shopping-cart text-primary"></i>
-          <h6>Quick Cart</h6>
-          <small>Add Favorites</small>
-        </div>
-        <div class="food-item">
-          <i class="fas fa-motorcycle text-success"></i>
-          <h6>Fast Delivery</h6>
-          <small>30 mins or free</small>
-        </div>
+      <div class="content">
+        ${body}
+        ${ctaLabel && ctaUrl ? `<div style="text-align:center; margin: 28px 0;"><a href="${ctaUrl}" class="button">${ctaLabel}</a></div>` : ''}
+        ${helpText ? `<div class="card"><p style="margin:0; line-height:1.75;">${helpText}</p></div>` : ''}
       </div>
-      
-      <!-- CTA Button -->
-      <div class="text-center mt-5">
-        <a href="${process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app'}" class="cta-button">
-          <i class="fas fa-shopping-bag me-3"></i>
-          Start Ordering Now!
-        </a>
-      </div>
-      
-      <!-- Security Notice -->
-      <div class="alert alert-info mt-5" style="animation: slideInUp 1s ease-out 2s both;">
-        <i class="fas fa-shield-alt me-2"></i>
-        <small>This was you, right? If not, <a href="${process.env.FRONTEND_URL}/reset-password.html" style="color: #007bff;">secure your account</a></small>
-      </div>
-    </div>
-    
-    <!-- Animated Footer -->
-    <div class="footer">
-      <div class="timestamp mb-3">
-        Logged in: ${timestamp}
-      </div>
-      <p class="mb-0">
-        <i class="fas fa-heart text-danger me-2"></i>
-        Made with ❤️ for food lovers | © 2026 Belleful
-      </p>
-      <div style="margin-top: 20px;">
-        <span class="me-3">🍕 🍔 🍟 🍲 🌮 🍣</span>
+      <div class="footer">
+        <p>Need help? Reach out at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
+        <p>© 2026 Belleful. Trusted food delivery and pickup.</p>
       </div>
     </div>
   </div>
 </body>
-</html>
-  `,
+</html>`;
 
-  module.exports = emailTemplates;
+const emailTemplates = {
+  otpVerification: (name, otp) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Verify your email</h2>
+        <p style="margin-bottom: 18px;">Hi ${name}, thank you for registering with Belleful. Use the code below to confirm your email address.</p>
+        <div style="background: linear-gradient(135deg, #0d6efd, #6610f2); color: white; font-size: 34px; letter-spacing: 10px; text-align: center; padding: 22px 0; border-radius: 16px; margin: 18px 0;">${otp}</div>
+        <p style="margin:0; color:#6c757d;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
+      </div>`;
 
+    return renderBaseTemplate({
+      title: 'Verify Your Belleful Account',
+      intro: 'Secure your account with a one-time verification code.',
+      body,
+      helpText: 'If you did not request this code, please ignore this email.'
+    });
+  },
 
+  welcome: (name) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Welcome to Belleful, ${name}!</h2>
+        <p>We are delighted to have you on board. Your account is now ready and you can explore menus, customize orders, and enjoy fast delivery or pickup.</p>
+        <ul style="padding-left: 18px; margin: 18px 0 0 0; color: #495057;">
+          <li>Discover fresh dishes from our menu</li>
+          <li>Save favorites and build your perfect meal</li>
+          <li>Track your order from kitchen to doorstep</li>
+        </ul>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Welcome to Belleful!',
+      intro: 'Your account is active and ready for delicious moments.',
+      body,
+      ctaLabel: 'Start Ordering',
+      ctaUrl: FRONTEND_URL
+    });
+  },
+
+  orderConfirmation: (order) => {
+    const itemRows = renderItemsTable(order.items || []);
+    const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Thank you for your order!</h2>
+        <p>We have received your request and our team is now processing it. Below is a complete summary of your order.</p>
+        <p style="margin: 14px 0 0 0; color: #495057;"><strong>${totalItems}</strong> item${totalItems === 1 ? '' : 's'} in your order, totaling <strong>${formatCurrency(order.totalAmount)}</strong>.</p>
+      </div>
+      ${renderOrderDetailsSection(order)}
+      <div style="margin-bottom: 22px; overflow-x:auto;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: #e9ecef; text-align:left;">
+              <th style="padding: 12px 10px;">Item</th>
+              <th style="padding: 12px 10px; text-align:center;">Qty</th>
+              <th style="padding: 12px 10px; text-align:right;">Unit Price</th>
+              <th style="padding: 12px 10px; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRows}
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="background:#ffffff; border:none;">
+        <p style="margin: 0 0 8px 0;"><strong>Order total:</strong> ${formatCurrency(order.totalAmount)}</p>
+        <p style="margin: 0; color: #6c757d; font-size: 15px;">View the latest status in your Belleful dashboard anytime.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Order Confirmed',
+      intro: `Your order ${order.displayId || '#'+order._id.toString().slice(-6)} has been successfully placed.`,
+      body,
+      ctaLabel: 'View My Orders',
+      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      helpText: 'Questions? Reply to this email or contact our support team for assistance.'
+    });
+  },
+
+  orderAdminNotification: (order) => {
+    const itemRows = renderItemsTable(order.items || []);
+    const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const body = `
+      <div class="card">
+        <h2 class="section-title">New order placed</h2>
+        <p>A new customer order has been received. Please review the order details and update the order status in the admin dashboard.</p>
+      </div>
+      <div class="card" style="background:#ffffff; border:none;">
+        <p style="margin: 0 0 6px 0;"><strong>Customer Name:</strong> ${order.user?.name || 'Unknown'}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Customer Email:</strong> ${order.user?.email || 'Unknown'}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Phone:</strong> ${order.phoneNumber || 'Not provided'}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Order Number:</strong> ${order.displayId || '#'+order._id.toString().slice(-6)}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Placed:</strong> ${formatDate(order.createdAt)}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Order Value:</strong> ${formatCurrency(order.totalAmount)}</p>
+        <p style="margin: 0; color: #6c757d; font-size: 15px;">${totalItems} item${totalItems === 1 ? '' : 's'} in this order.</p>
+      </div>
+      ${renderOrderDetailsSection(order)}
+      <div style="margin-bottom: 22px; overflow-x:auto;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: #e9ecef; text-align:left;">
+              <th style="padding: 12px 10px;">Item</th>
+              <th style="padding: 12px 10px; text-align:center;">Qty</th>
+              <th style="padding: 12px 10px; text-align:right;">Unit Price</th>
+              <th style="padding: 12px 10px; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRows}
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="background:#ffffff; border:none;">
+        <p style="margin: 0; color: #6c757d; font-size: 15px;">Open the admin dashboard to approve, prepare, or dispatch this order.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'New Order Notification',
+      intro: `New order received for ${formatCurrency(order.totalAmount)}.`,
+      body,
+      ctaLabel: 'Open Admin Dashboard',
+      ctaUrl: `${FRONTEND_URL}/admin/orders`,
+      helpText: 'Keep orders moving quickly by approving and processing this request promptly.'
+    });
+  },
+
+  orderStatusUpdate: (order, status) => {
+    const itemRows = renderItemsTable(order.items || []);
+    const statusName = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
+    const messageMap = {
+      preparing: 'Your order is now being prepared by our kitchen team.',
+      ready_for_pickup: 'Your order is ready for collection at the restaurant.',
+      out_for_delivery: 'Your delivery is on the way and will arrive shortly.',
+      delivered: 'Your order has been delivered. Enjoy your meal!',
+      cancelled: 'This order has been cancelled. Contact support if you need help.',
+      pending_payment: 'Your order is awaiting payment confirmation.',
+      pending_approval: 'Your order is being reviewed and will be approved shortly.'
+    };
+    const statusMessage = messageMap[status] || 'Your order status has changed. Please review the details below.';
+
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Order Status Updated</h2>
+        <p>${statusMessage}</p>
+      </div>
+      ${renderOrderDetailsSection(order)}
+      <div style="margin-bottom: 22px; overflow-x:auto;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: #e9ecef; text-align:left;">
+              <th style="padding: 12px 10px;">Item</th>
+              <th style="padding: 12px 10px; text-align:center;">Qty</th>
+              <th style="padding: 12px 10px; text-align:right;">Unit Price</th>
+              <th style="padding: 12px 10px; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRows}
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="background:#ffffff; border:none;">
+        <p style="margin: 0 0 8px 0;"><strong>Order total:</strong> ${formatCurrency(order.totalAmount)}</p>
+        <p style="margin: 0; color: #6c757d; font-size: 15px;">Visit your dashboard for continued tracking and estimated pickup/delivery times.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: `Order ${statusName}`,
+      intro: `Update for ${order.displayId || '#'+order._id.toString().slice(-6)}.`,
+      body,
+      ctaLabel: 'Track Your Order',
+      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      helpText: 'If you need additional support, reply to this email or contact our customer team.'
+    });
+  },
+
+  passwordReset: (name, resetUrl) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Password reset requested</h2>
+        <p>Hi ${name}, click the button below to reset your password. This link will expire in one hour.</p>
+        <p style="margin: 0; text-align:center;"><a href="${resetUrl}" class="button">Reset Password</a></p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Reset Your Belleful Password',
+      intro: 'Use the link below to update your account password securely.',
+      body,
+      helpText: 'If you did not request a password reset, please ignore this message or contact support.'
+    });
+  },
+
+  contactForm: (name, email, phone, message, timestamp) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">New contact submission</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>Submitted:</strong> ${timestamp}</p>
+      </div>
+      <div class="card" style="background: #ffffff; border:none;">
+        <h3 style="margin:0 0 10px 0; font-size: 16px; color: #343a40;">Message</h3>
+        <p style="white-space: pre-wrap; color:#495057; line-height:1.75; margin:0;">${message}</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'New Contact Form Submission',
+      intro: 'A customer message has been received through the Belleful contact form.',
+      body,
+      helpText: 'Please respond promptly to maintain great customer service.'
+    });
+  },
+
+  loginSuccess: (name, timestamp) => {
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Login Successful</h2>
+        <p>Hi ${name}, you have successfully signed in to your Belleful account.</p>
+        <p style="margin: 0 0 6px 0;"><strong>Logged in at:</strong> ${timestamp}</p>
+        <p>If you did not initiate this login, please secure your account immediately.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Login Successful',
+      intro: 'Welcome back to Belleful. Your session is now active.',
+      body,
+      ctaLabel: 'Continue Shopping',
+      ctaUrl: FRONTEND_URL,
+      helpText: 'If this wasn’t you, reset your password or contact support right away.'
+    });
+  }
+};
+
+module.exports = emailTemplates;

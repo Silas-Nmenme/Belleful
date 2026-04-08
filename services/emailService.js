@@ -41,6 +41,10 @@ const initTransporter = () => {
   return transporter;
 };
 
+const getAdminRecipient = () => {
+  return process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
+};
+
 // Init on load
 initTransporter();
 
@@ -127,11 +131,26 @@ const sendLoginSuccessEmail = async (email, name) => {
  * Order Confirmation
  */
 const sendOrderConfirmation = async (order) => {
-  const html = emailTemplates.orderConfirmation(order);
+  const recipient = order.user?.email || order.email;
+  if (!recipient) {
+    console.error('Order confirmation failed: missing recipient email');
+    return { success: false, message: 'Missing customer email' };
+  }
 
+  const html = emailTemplates.orderConfirmation(order);
   return sendTemplateEmail(
-    order.user.email,
-    `Order Confirmed - #${order._id.slice(-6)}`,
+    recipient,
+    `Order Confirmed - ${order.displayId || '#'+order._id.toString().slice(-6)}`,
+    html
+  );
+};
+
+const sendOrderAdminNotification = async (order) => {
+  const recipient = getAdminRecipient();
+  const html = emailTemplates.orderAdminNotification(order);
+  return sendTemplateEmail(
+    recipient,
+    `New Order Placed - ${order.displayId || '#'+order._id.toString().slice(-6)}`,
     html
   );
 };
@@ -140,11 +159,16 @@ const sendOrderConfirmation = async (order) => {
  * Order Status Update
  */
 const sendOrderStatusUpdate = async (order, status) => {
-  const html = emailTemplates.orderStatusUpdate(order, status);
+  const recipient = order.user?.email || order.email;
+  if (!recipient) {
+    console.error('Order status update failed: missing recipient email');
+    return { success: false, message: 'Missing customer email' };
+  }
 
+  const html = emailTemplates.orderStatusUpdate(order, status);
   return sendTemplateEmail(
-    order.user.email,
-    `Order Update #${order._id.slice(-6)}`,
+    recipient,
+    `Order Update - ${order.displayId || '#'+order._id.toString().slice(-6)}`,
     html
   );
 };
@@ -155,6 +179,7 @@ module.exports = {
   sendTemplateEmail,
   sendLoginSuccessEmail,
   sendOrderConfirmation,
+  sendOrderAdminNotification,
   sendOrderStatusUpdate
 };
 

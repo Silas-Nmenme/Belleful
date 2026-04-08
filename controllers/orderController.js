@@ -2,7 +2,7 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
-const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../services/emailService');
+const { sendOrderConfirmation, sendOrderAdminNotification, sendOrderStatusUpdate } = require('../services/emailService');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
 
@@ -122,18 +122,20 @@ exports.checkout = async (req, res) => {
       await MenuItem.findByIdAndUpdate(item.menuItem, { $inc: { stock: -item.quantity } });
     }
     
-    // Clear user cart
     await Cart.findOneAndUpdate({ user: req.user._id }, { 
       $set: { items: [], grandTotal: 0, subtotal: 0 } 
     }).exec();
     
-    // 6. Email (fire and forget)
-    sendOrderConfirmation(order).catch(console.error);
-    
-    // 7. Return FULL populated order
     const populatedOrder = await Order.findById(order._id)
+      .populate('user', 'name email phoneNumber')
       .populate('items.menuItem', 'name image price')
       .lean();
+
+    // 6. Email notifications
+    sendOrderConfirmation(populatedOrder).catch(console.error);
+    sendOrderAdminNotification(populatedOrder).catch(console.error);
+    
+    // 7. Return FULL populated order
     
     console.log(`✅ Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
     
@@ -286,7 +288,9 @@ exports.updateStatus = async (req, res) => {
     }
     
     // 3. Find order
-    const order = await Order.findById(orderId).populate('user');
+    const order = await Order.findById(orderId)
+      .populate('user', 'name email phoneNumber')
+      .populate('items.menuItem', 'name price image');
     if (!order) {
       console.warn(`⚠️ Order not found: ${orderId}`);
       return res.status(404).json({ 
