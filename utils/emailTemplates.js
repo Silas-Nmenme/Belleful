@@ -1,4 +1,4 @@
-﻿﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
+﻿﻿﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
 
@@ -72,7 +72,7 @@ const renderOrderDetailsSection = (order) => {
       const status = order.paymentStatus || 'pending';
       const statusObj = colorByStatus(status);
       const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
-      return `<span style="color: ${statusObj.color}; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; padding: 10px 24px; border-radius: 50px;">${statusLabel}</span>`;
+      return `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`;
     })()
   );
 
@@ -97,7 +97,7 @@ const renderOrderDetailsSection = (order) => {
         const status = order.orderStatus;
         const statusObj = colorByStatus(status);
         const statusLabel = statusLabels[status] || status.replace(/_/g, ' ').toUpperCase();
-        return buildInfoLine('Order Status:', `<span style="color: ${statusObj.color}; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; padding: 10px 24px; border-radius: 50px;">${statusLabel}</span>`);
+        return buildInfoLine('Order Status:', `<span class="status-badge" style="--status-bg: ${statusObj.bgColor}; --status-color: ${statusObj.color};">${statusLabel}</span>`);
       })()}
       ${buildInfoLine('Fulfillment:', deliveryTypeLabel)}
       ${deliveryInfo}
