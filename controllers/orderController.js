@@ -294,7 +294,7 @@ exports.updateStatus = async (req, res) => {
       .populate('user', 'name email phoneNumber')
       .populate('items.menuItem', 'name price image');
     if (!order) {
-      console.warn(`⚠️ Order not found: ${orderId}`);
+      console.warn(`Order not found: ${orderId}`);
       return res.status(404).json({ 
         success: false, 
         message: `Order ${orderId.slice(-8)} not found or already deleted.` 
@@ -372,7 +372,7 @@ exports.getMyOrderById = async (req, res) => {
       }
 
       // Reuse getMyOrders logic
-      console.log(`📥 Download requested: ${format} for user ${req.user.email} - fetching ALL orders`);
+      console.log(`Download requested: ${format} for user ${req.user.email} - fetching ALL orders`);
       
       let orders;
       try {
