@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const fs = require('fs');
 const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
@@ -138,7 +139,7 @@ exports.checkout = async (req, res) => {
     
     // 7. Return FULL populated order
     
-    console.log(`✅ Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
+    console.log(`Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
     
     res.status(201).json({ 
       success: true, 
@@ -188,7 +189,7 @@ exports.getMyOrders = async (req, res) => {
       }))
     }));
 
-    console.log(`✅ Orders API completed: ${safeOrders.length} safe orders`);
+    console.log(`Orders API completed: ${safeOrders.length} safe orders`);
     res.json({ success: true, data: safeOrders });
   } catch (error) {
     console.error('getMyOrders error:', error);
@@ -257,7 +258,7 @@ exports.updateStatus = async (req, res) => {
     
     // 1. Validate ObjectId format (24 hex chars) - FIX 400 on malformed IDs
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      console.error(`❌ Invalid ObjectId format: ${orderId} (expected 24 hex chars)`);
+      console.error(`Invalid ObjectId format: ${orderId} (expected 24 hex chars)`);
       return res.status(400).json({ 
         success: false, 
         message: `Invalid order ID format: ${orderId}. Must be valid 24-character hex ID.`,
@@ -279,7 +280,7 @@ exports.updateStatus = async (req, res) => {
     const finalStatus = statusMap[clientStatus] || clientStatus;
     
     if (!validStatuses.includes(finalStatus)) {
-      console.error(`❌ Invalid status: ${clientStatus} (mapped to ${finalStatus})`);
+      console.error(`Invalid status: ${clientStatus} (mapped to ${finalStatus})`);
       return res.status(400).json({ 
         success: false, 
         message: `Invalid status "${clientStatus}". Valid options: ${validStatuses.join(', ')}`,
@@ -305,7 +306,7 @@ exports.updateStatus = async (req, res) => {
     order.orderStatus = finalStatus;
     await order.save();
     
-    console.log(`✅ Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus}`);
+    console.log(`Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus}`);
 
     // 5. Notify customer (fire & forget)
     sendOrderStatusUpdate(order, finalStatus).catch(err => console.error('Email failed:', err));
@@ -334,9 +335,8 @@ exports.getMyOrderById = async (req, res) => {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid order ID format' });
-    }
+      console.log(`📥 User download requested: ${format} for user: ${req.user?.email}`);
+
 
     const order = await Order.findOne({ _id: id, user: req.user._id })
       .populate('items.menuItem', 'name price image')
@@ -356,7 +356,7 @@ exports.getMyOrderById = async (req, res) => {
       }))
     };
 
-    console.log(`✅ User order lookup: ${id.slice(-8)} for ${req.user.email}`);
+    console.log(`User order lookup: ${id.slice(-8)} for ${req.user.email}`);
     res.json({ success: true, data: cleanOrder });
   } catch (error) {
     console.error('getMyOrderById error:', error);
