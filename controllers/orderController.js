@@ -5,6 +5,8 @@ const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
 const { sendOrderConfirmation, sendOrderAdminNotification, sendOrderStatusUpdate } = require('../services/emailService');
 const { formatOrdersData, generatePDF, generateDOCX, generateCSV } = require('../utils/exportUtils');
+const path = require('path');
+const os = require('os');
 const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/role');
 
@@ -362,152 +364,185 @@ exports.getMyOrderById = async (req, res) => {
   }
 };
 
-// ===== DOWNLOAD USER TRANSACTIONS (NO ADMIN REQUIRED) =====
+// ===== DOWNLOAD USER TRANSACTIONS (NO ADMIN REQUIRED) - REWRITTEN =====
 exports.downloadMyTransactions = async (req, res) => {
-    try {
-      const { format = 'csv' } = req.query;
-      const validFormats = ['pdf', 'docx', 'csv'];
-      if (!validFormats.includes(format)) {
-        return res.status(400).json({ success: false, message: `Invalid format. Use: ${validFormats.join(', ')}` });
-      }
-
-      // Explicitly allow non-admin users - download own transactions only
-      if (!req.user || !req.user._id) {
-        return res.status(401).json({ success: false, message: 'Authentication required' });
-      }
-      console.log(`User download ${format}: ID=${req.user._id} (${req.user.email || 'no-email'}, role=${req.user.role || 'none'}) -> NO ADMIN REQUIRED`);
-
-      // Reuse getMyOrders logic
-      // Enhanced log already added above
-      
-      let orders;
-      try {
-        orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user._id) })
-          .populate('items.menuItem', 'name image')
-          .sort({ createdAt: -1 })
-          .lean();  // REMOVED LIMIT - ALL orders
-      } catch (populateErr) {
-        console.error('Populate failed:', populateErr);
-        orders = [];
-      }
-      
-      console.log(`Found ${orders.length} orders for export`);
-
-
-      if (!orders.length) {
-        return res.status(404).json({ success: false, message: 'No transactions found' });
-      }
-
-      // Defensive data cleaning like getMyOrders
-      const safeOrders = (orders || []).map(order => ({
-        ...order,
-        totalAmount: Number(order.totalAmount) || 0,
-        items: (order.items || []).map(item => ({
-          ...item,
-          price: Number(item.price) || 0,
-          menuItem: item.menuItem || null
-        }))
-      }));
-      const exportData = formatOrdersData(safeOrders, 'user');
-      let filename = `my-transactions-${new Date().toISOString().slice(0,10)}.${format}`;
-
-      console.log(`Generating ${format.toUpperCase()} for ${safeOrders.length} orders...`);
-      
-      res.set({
-        'Content-Type': format === 'pdf' ? 'application/pdf' : format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'text/csv',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      });
-
-      let tempFile;
-      try {
-        switch (format) {
-          case 'pdf':
-            tempFile = await generatePDF(exportData, filename);
-            break;
-          case 'docx':
-            tempFile = await generateDOCX(exportData, filename);
-            break;
-          case 'csv':
-            tempFile = generateCSV(exportData, filename);
-            break;
-        }
-        res.download(tempFile, filename, (err) => {
-          if (!err) {
-            try { fs.unlinkSync(tempFile); } catch(unlinkErr) { console.warn('Cleanup failed:', unlinkErr.message); }
-          } else {
-            console.error('Download error:', err);
-          }
-        });
-      } catch (genErr) {
-        console.error(`Generate ${format} failed:`, genErr);
-        res.status(500).json({ success: false, message: `Failed to generate ${format.toUpperCase()}: ${genErr.message}` });
-      }
-    } catch (error) {
-      console.error('Download error:', error);
-      res.status(500).json({ success: false, message: 'Download failed' });
+  const path = require('path');
+  const os = require('os');
+  const fsPromises = require('fs').promises;
+  
+  try {
+    const { format = 'csv' } = req.query;
+    const validFormats = ['pdf', 'docx', 'csv'];
+    if (!validFormats.includes(format)) {
+      return res.status(400).json({ success: false, message: `Invalid format. Use: ${validFormats.join(', ')}` });
     }
-  };
 
-  // ===== DOWNLOAD ADMIN TRANSACTIONS =====
-  exports.downloadAdminTransactions = async (req, res) => {
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    console.log(`User ${format} download: ${req.user._id} (${req.user.email}, role=${req.user.role || 'user'})`);
+
+    const orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user._id) })
+      .populate('items.menuItem', 'name image')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!orders?.length) {
+      return res.status(404).json({ success: false, message: 'No transactions found' });
+    }
+
+    const safeOrders = orders.map(order => ({
+      ...order,
+      totalAmount: Number(order.totalAmount) || 0,
+      items: (order.items || []).map(item => ({
+        ...item,
+        price: Number(item.price) || 0,
+        menuItem: item.menuItem || null
+      }))
+    }));
+
+    const exportData = formatOrdersData(safeOrders, 'user');
+    const safeName = `my-transactions-${new Date().toISOString().slice(0,10).replace(/:/g, '-')}.${format}`;
+    const tmpDir = os.tmpdir();
+    const tempFile = path.join(tmpDir, safeName);
+
+    console.log(`Generating ${format.toUpperCase()} → ${tempFile}`);
+
+    res.set({
+      'Content-Type': format === 'pdf' ? 'application/pdf' : 
+                      format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 
+                      'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${safeName}"`
+    });
+
+    let fileContent;
     try {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ success: false, message: 'Admin only' });
-      }
-
-      const { format = 'csv', status, dateFrom, limit = 100 } = req.query;
-      const validFormats = ['pdf', 'docx', 'csv'];
-      if (!validFormats.includes(format)) {
-        return res.status(400).json({ success: false, message: `Invalid format. Use: ${validFormats.join(', ')}` });
-      }
-
-      const query = {};
-      if (status) query.orderStatus = status;
-      if (dateFrom) query.createdAt = { $gte: new Date(dateFrom) };
-
-      const orders = await Order.find(query)
-        .populate('user', 'name phoneNumber')
-        .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
-        .lean();
-
-      if (!orders.length) {
-        return res.status(404).json({ success: false, message: 'No transactions found' });
-      }
-
-      const exportData = formatOrdersData(orders, 'admin');
-      let filename = `admin-transactions-${new Date().toISOString().slice(0,10)}.${format}`;
-
-      res.set({
-        'Content-Type': format === 'pdf' ? 'application/pdf' : format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'text/csv',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      });
-
       switch (format) {
         case 'pdf':
-          const pdfFile = await generatePDF(exportData, filename);
-          res.download(pdfFile, filename, (err) => {
-            if (!err) fs.unlinkSync(pdfFile);
-          });
+          fileContent = await generatePDF(exportData, safeName);
+          await fsPromises.writeFile(tempFile, fileContent);
           break;
         case 'docx':
-          const docxFile = await generateDOCX(exportData, filename);
-          res.download(docxFile, filename, (err) => {
-            if (!err) fs.unlinkSync(docxFile);
-          });
+          const docxBuffer = await generateDOCX(exportData, safeName);
+          await fsPromises.writeFile(tempFile, docxBuffer);
           break;
         case 'csv':
-          const csvFile = generateCSV(exportData, filename);
-          res.download(csvFile, filename, (err) => {
-            if (!err) fs.unlinkSync(csvFile);
-          });
+          fileContent = generateCSV(exportData, safeName);
+          await fsPromises.writeFile(tempFile, fileContent);
           break;
       }
-    } catch (error) {
-      console.error('Admin download error:', error);
-      res.status(500).json({ success: false, message: 'Download failed' });
+    } catch (genErr) {
+      console.error(`Generation failed (${format}):`, genErr.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: `Failed to generate ${format.toUpperCase()}`,
+        hint: genErr.message.includes('docx') ? 'Install: npm i docx' : 
+              genErr.message.includes('pdfkit') ? 'Install: npm i pdfkit' : 'Check utils/exportUtils.js'
+      });
     }
-  };
+
+    // Stream download with cleanup
+    res.download(tempFile, safeName, async (err) => {
+      try {
+        await fsPromises.unlink(tempFile).catch(() => {});
+      } catch (cleanupErr) {
+        console.warn('Cleanup failed:', cleanupErr.message);
+      }
+    });
+
+  } catch (error) {
+    console.error('User download error:', error);
+    res.status(500).json({ success: false, message: 'Download server error. Try CSV format.' });
+  }
+};
+
+
+// ===== DOWNLOAD ADMIN TRANSACTIONS (Admin-only summaries) - REWRITTEN =====
+exports.downloadAdminTransactions = async (req, res) => {
+  const path = require('path');
+  const os = require('os');
+  const fsPromises = require('fs').promises;
+  
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const { format = 'csv', status, dateFrom, limit = 100 } = req.query;
+    const validFormats = ['pdf', 'docx', 'csv'];
+    if (!validFormats.includes(format)) {
+      return res.status(400).json({ success: false, message: `Invalid format: ${validFormats.join(', ')}` });
+    }
+
+    const query = {};
+    if (status) query.orderStatus = status;
+    if (dateFrom) query.createdAt = { $gte: new Date(dateFrom) };
+    const skipLimit = parseInt(limit) || 100;
+
+    const orders = await Order.find(query)
+      .populate('user', 'name phoneNumber')
+      .sort({ createdAt: -1 })
+      .limit(skipLimit)
+      .lean();
+
+    if (!orders.length) {
+      return res.status(404).json({ success: false, message: 'No transactions match filters' });
+    }
+
+    const exportData = formatOrdersData(orders, 'admin');
+    const safeName = `admin-transactions-${new Date().toISOString().slice(0,10).replace(/:/g, '-')}.${format}`;
+    const tmpDir = os.tmpdir();
+    const tempFile = path.join(tmpDir, safeName);
+
+    console.log(`Admin ${format} export: ${orders.length} orders → ${tempFile}`);
+
+    res.set({
+      'Content-Type': format === 'pdf' ? 'application/pdf' : 
+                      format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 
+                      'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${safeName}"`
+    });
+
+    let fileContent;
+    try {
+      switch (format) {
+        case 'pdf':
+          fileContent = await generatePDF(exportData, safeName);
+          await fsPromises.writeFile(tempFile, fileContent);
+          break;
+        case 'docx':
+          const docxBuffer = await generateDOCX(exportData, safeName);
+          await fsPromises.writeFile(tempFile, docxBuffer);
+          break;
+        case 'csv':
+          fileContent = generateCSV(exportData, safeName);
+          await fsPromises.writeFile(tempFile, fileContent);
+          break;
+      }
+    } catch (genErr) {
+      console.error(`Admin generation failed (${format}):`, genErr.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: `Failed to generate ${format.toUpperCase()}`,
+        hint: 'Check: npm i pdfkit docx csv-stringify'
+      });
+    }
+
+    res.download(tempFile, safeName, async (err) => {
+      try {
+        await fsPromises.unlink(tempFile).catch(() => {});
+      } catch (cleanupErr) {
+        console.warn('Admin cleanup:', cleanupErr.message);
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin download error:', error);
+    res.status(500).json({ success: false, message: 'Admin download failed. Check server logs.' });
+  }
+};
+
 
 
 
