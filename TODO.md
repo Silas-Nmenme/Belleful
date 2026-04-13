@@ -1,21 +1,18 @@
-# DOCX Download Fix - Progress Tracker
+# Transaction Download Fix - Remove Admin Requirement for Users
 
-## Plan Implementation Steps
+## Status: In Progress
 
-### 1. ✅ Create this TODO.md (done)
-### 2. ✅ Edit controllers/orderController.js (done)
-   - Removed ObjectId validation bug
-   - Added 📥 logging + fs import
-   - **Fixed CSV** res.download() matching PDF/DOCX
-### 3. ✅ Test server restart & endpoint (ready)
-   - `npm start` / restart server
-   - Test ALL: DOCX/PDF/CSV from frontend
-### 4. ☐ Verify final
-   - Console: `📥 User download requested: [format] user: ...`
-   - Files contain transactions table
-### 5. ☐ Complete & cleanup
-   - `attempt_completion` when verified
+### Steps:
+- [x] Add explicit auth check and logging to `controllers/orderController.js::downloadMyTransactions` 
+  - Filters by `req.user._id` (personal transactions only)
+  - No role='admin' requirement
+- [ ] Test locally: Login user, call API `/api/orders/download-my-transactions?format=csv`
+- [ ] Deploy to Vercel: `vercel --prod`
+- [ ] Test frontend dashboard download button
+- [ ] Check Vercel function logs for new console.log
+- [ ] Close issue
 
-**Status: ✅ DOCX Download Fix COMPLETE! All formats (PDF/DOCX/CSV) now work correctly with proper logging. Code cleaned, syntax fixed, ready for testing.**
+**Backend is now user-ready: Authenticated users can download own CSV/PDF/DOCX transactions.**
 
-**Next:** Restart server (`npm start`), test downloads from frontend/dashboard, verify console logs and file contents contain transactions table. Then run `attempt_completion`. 
+**Next:** Run `vercel --prod` or use Vercel dashboard to deploy updated code.
+

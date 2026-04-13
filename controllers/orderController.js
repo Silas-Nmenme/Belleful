@@ -371,8 +371,14 @@ exports.getMyOrderById = async (req, res) => {
         return res.status(400).json({ success: false, message: `Invalid format. Use: ${validFormats.join(', ')}` });
       }
 
+      // Explicitly allow non-admin users - download own transactions only
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+      console.log(`User download ${format}: ID=${req.user._id} email=${req.user.email || 'no-email'} role=${req.user.role || 'none'} - No admin required`);
+
       // Reuse getMyOrders logic
-      console.log(`Download requested: ${format} for user ${req.user.email} - fetching ALL orders`);
+      // Enhanced log already added above
       
       let orders;
       try {
