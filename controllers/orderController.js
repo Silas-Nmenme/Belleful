@@ -237,7 +237,7 @@ exports.getOrderById = async (req, res) => {
     }
 
     // Admin-only access
-    if (!req.user?.role === 'admin') {
+if (req.user?.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 
