@@ -422,8 +422,10 @@ exports.getMyOrderById = async (req, res) => {
           });
           break;
         case 'csv':
-          const csvContent = generateCSV(exportData, filename);
-          res.sendFile(csvContent, { root: '/' });
+          const csvFile = generateCSV(exportData, filename);
+          res.download(csvFile, filename, (err) => {
+            if (!err) fs.unlinkSync(csvFile);
+          });
           break;
       }
     } catch (error) {
