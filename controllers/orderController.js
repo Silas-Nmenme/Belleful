@@ -362,8 +362,8 @@ exports.getMyOrderById = async (req, res) => {
   }
 };
 
-  // ===== DOWNLOAD USER TRANSACTIONS =====
-  exports.downloadMyTransactions = async (req, res) => {
+// ===== DOWNLOAD USER TRANSACTIONS (NO ADMIN REQUIRED) =====
+exports.downloadMyTransactions = async (req, res) => {
     try {
       const { format = 'csv' } = req.query;
       const validFormats = ['pdf', 'docx', 'csv'];
@@ -375,7 +375,7 @@ exports.getMyOrderById = async (req, res) => {
       if (!req.user || !req.user._id) {
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }
-      console.log(`User download ${format}: ID=${req.user._id} email=${req.user.email || 'no-email'} role=${req.user.role || 'none'} - No admin required`);
+      console.log(`User download ${format}: ID=${req.user._id} (${req.user.email || 'no-email'}, role=${req.user.role || 'none'}) -> NO ADMIN REQUIRED`);
 
       // Reuse getMyOrders logic
       // Enhanced log already added above
