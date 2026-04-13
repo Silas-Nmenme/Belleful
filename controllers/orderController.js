@@ -335,7 +335,10 @@ exports.getMyOrderById = async (req, res) => {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
     
-      console.log(`📥 User download requested: ${format} for user: ${req.user?.email}`);
+    console.log(`User download requested: ${req.query.format || 'csv'} for user: ${req.user?.email}`);
+
+    
+
 
 
     const order = await Order.findOne({ _id: id, user: req.user._id })
