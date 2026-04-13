@@ -23,7 +23,8 @@ router.patch('/:id/status', isAdmin, orderController.updateStatus);
 router.get('/:id', isAdmin, orderController.getOrderById);
 
 // Download routes
-router.get('/my-orders/download', orderController.downloadMyTransactions);
+//router.get('/my-orders/download', orderController.downloadMyTransactions);
+router.get('/download-my-transactions', orderController.downloadMyTransactions);  // Alias for frontend compatibility
 router.get('/admin/download', isAdmin, orderController.downloadAdminTransactions);
 
 module.exports = router;
