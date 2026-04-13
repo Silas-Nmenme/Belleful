@@ -335,13 +335,8 @@ exports.getMyOrderById = async (req, res) => {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
     
-    console.log(`User download requested: ${req.query.format || 'csv'} for user: ${req.user?.email}`);
-
-    
-
-
-
     const order = await Order.findOne({ _id: id, user: req.user._id })
+
       .populate('items.menuItem', 'name price image')
       .lean();
       
@@ -377,17 +372,21 @@ exports.getMyOrderById = async (req, res) => {
       }
 
       // Reuse getMyOrders logic
+      console.log(`📥 Download requested: ${format} for user ${req.user.email} - fetching ALL orders`);
+      
       let orders;
       try {
         orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user._id) })
           .populate('items.menuItem', 'name image')
           .sort({ createdAt: -1 })
-          .limit(50)
-          .lean();
+          .lean();  // REMOVED LIMIT - ALL orders
       } catch (populateErr) {
         console.error('Populate failed:', populateErr);
         orders = [];
       }
+      
+      console.log(`Found ${orders.length} orders for export`);
+
 
       if (!orders.length) {
         return res.status(404).json({ success: false, message: 'No transactions found' });
@@ -406,30 +405,36 @@ exports.getMyOrderById = async (req, res) => {
       const exportData = formatOrdersData(safeOrders, 'user');
       let filename = `my-transactions-${new Date().toISOString().slice(0,10)}.${format}`;
 
+      console.log(`Generating ${format.toUpperCase()} for ${safeOrders.length} orders...`);
+      
       res.set({
         'Content-Type': format === 'pdf' ? 'application/pdf' : format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'text/csv',
         'Content-Disposition': `attachment; filename="${filename}"`
       });
 
-      switch (format) {
-        case 'pdf':
-          const pdfFile = await generatePDF(exportData, filename);
-          res.download(pdfFile, filename, (err) => {
-            if (!err) fs.unlinkSync(pdfFile);
-          });
-          break;
-        case 'docx':
-          const docxFile = await generateDOCX(exportData, filename);
-          res.download(docxFile, filename, (err) => {
-            if (!err) fs.unlinkSync(docxFile);
-          });
-          break;
-        case 'csv':
-          const csvFile = generateCSV(exportData, filename);
-          res.download(csvFile, filename, (err) => {
-            if (!err) fs.unlinkSync(csvFile);
-          });
-          break;
+      let tempFile;
+      try {
+        switch (format) {
+          case 'pdf':
+            tempFile = await generatePDF(exportData, filename);
+            break;
+          case 'docx':
+            tempFile = await generateDOCX(exportData, filename);
+            break;
+          case 'csv':
+            tempFile = generateCSV(exportData, filename);
+            break;
+        }
+        res.download(tempFile, filename, (err) => {
+          if (!err) {
+            try { fs.unlinkSync(tempFile); } catch(unlinkErr) { console.warn('Cleanup failed:', unlinkErr.message); }
+          } else {
+            console.error('Download error:', err);
+          }
+        });
+      } catch (genErr) {
+        console.error(`Generate ${format} failed:`, genErr);
+        res.status(500).json({ success: false, message: `Failed to generate ${format.toUpperCase()}: ${genErr.message}` });
       }
     } catch (error) {
       console.error('Download error:', error);
