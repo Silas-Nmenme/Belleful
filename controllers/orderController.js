@@ -374,17 +374,33 @@ exports.getMyOrderById = async (req, res) => {
       }
 
       // Reuse getMyOrders logic
-      let orders = await Order.find({ user: req.user._id })
-        .populate('items.menuItem', 'name image')
-        .sort({ createdAt: -1 })
-        .limit(50)
-        .lean();
+      let orders;
+      try {
+        orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user._id) })
+          .populate('items.menuItem', 'name image')
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .lean();
+      } catch (populateErr) {
+        console.error('Populate failed:', populateErr);
+        orders = [];
+      }
 
       if (!orders.length) {
         return res.status(404).json({ success: false, message: 'No transactions found' });
       }
 
-      const exportData = formatOrdersData(orders, 'user');
+      // Defensive data cleaning like getMyOrders
+      const safeOrders = (orders || []).map(order => ({
+        ...order,
+        totalAmount: Number(order.totalAmount) || 0,
+        items: (order.items || []).map(item => ({
+          ...item,
+          price: Number(item.price) || 0,
+          menuItem: item.menuItem || null
+        }))
+      }));
+      const exportData = formatOrdersData(safeOrders, 'user');
       let filename = `my-transactions-${new Date().toISOString().slice(0,10)}.${format}`;
 
       res.set({
