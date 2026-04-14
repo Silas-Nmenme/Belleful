@@ -1,6 +1,7 @@
 const PDFDocument = require('pdfkit');
 const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType } = require('docx');
 const { stringify } = require('csv-stringify/sync');
+const { PassThrough } = require('stream');
 const fs = require('fs');
 
 module.exports = {
@@ -9,25 +10,30 @@ module.exports = {
    */
   formatOrdersData(orders, type = 'user') {
     return orders.map(order => {
+      const safeOrder = {
+        ...order,
+        totalAmount: Number(order.totalAmount || 0),
+        items: Array.isArray(order.items) ? order.items : []
+      };
+      
       const row = {
-        'Order ID': order.displayId || `#${order._id.slice(-6)}`,
-        'Date': new Date(order.createdAt).toLocaleDateString(),
-        'Status': order.orderStatus?.replace('_', ' ').toUpperCase() || 'N/A',
-        'Method': order.deliveryMethod?.toUpperCase() || 'N/A',
-        'Items': order.itemCount || order.items?.length || 0,
-        'Total': `$${Number(order.totalAmount || 0).toFixed(2)}`,
-        'Phone': order.phoneNumber || 'N/A'
+        'Order ID': safeOrder.displayId || `#${safeOrder._id?.slice(-6)}`,
+        'Date': new Date(safeOrder.createdAt || Date.now()).toLocaleDateString(),
+        'Status': (safeOrder.orderStatus || 'N/A').replace('_', ' ').toUpperCase(),
+        'Method': (safeOrder.deliveryMethod || 'N/A').toUpperCase(),
+        'Items': safeOrder.itemCount || safeOrder.items.length || 0,
+        'Total': `$${safeOrder.totalAmount.toFixed(2)}`,
+        'Phone': safeOrder.phoneNumber || 'N/A',
+        'ItemsDetail': safeOrder.items.slice(0, 5).map(item => 
+          `${item.name || 'N/A'} x${item.quantity || 1} @$${(Number(item.price) || 0).toFixed(2)}`
+        ).join('; ') || 'No items'
       };
       
       if (type === 'admin') {
-        row.Customer = order.user?.name || 'N/A';
-        row['Payment Status'] = order.paymentStatus || 'N/A';
-        row['Notes'] = order.notes?.substring(0, 50) || '';
+        row.Customer = safeOrder.user?.name || (safeOrder.user?.email || '').split('@')[0] || 'N/A';
+        row['Payment Status'] = safeOrder.paymentStatus || 'Pending';
+        row['Notes'] = (safeOrder.notes || '').substring(0, 50);
       }
-      
-      row.ItemsDetail = order.items.map(item => 
-        `${item.name} x${item.quantity} @$${item.price?.toFixed(2)}`
-      ).join('; ');
       
       return row;
     });
@@ -38,8 +44,11 @@ module.exports = {
    */
   async generatePDF(data, filename = 'transactions.pdf') {
     return new Promise((resolve, reject) => {
+      const buffers = [];
       const doc = new PDFDocument({ layout: 'landscape', margin: 50 });
-      const stream = doc.pipe(fs.createWriteStream(filename));
+      const stream = new PassThrough();
+      
+      doc.pipe(stream);
       
       // Header
       doc.fontSize(20).text('Transaction Report', 50, 50);
@@ -49,22 +58,24 @@ module.exports = {
       const headers = Object.keys(data[0] || {});
       const headerPosition = 150;
       doc.fontSize(10).font('Helvetica-Bold');
-      headers.forEach((header, i) => {
-        doc.text(header, 50 + i * 120, headerPosition, { width: 120 });
+      headers.slice(0, 8).forEach((header, i) => {  // Limit columns
+        doc.text(header, 50 + i * 80, headerPosition, { width: 80 });
       });
       
-      // Rows
+      // Rows - truncate long text
       doc.font('Helvetica');
-      data.forEach((row, rowIndex) => {
-        const yPos = headerPosition + 30 + (rowIndex * 20);
-        headers.forEach((header, i) => {
-          doc.text(row[header]?.toString().substring(0, 30) || '', 50 + i * 120, yPos, { width: 120 });
+      data.slice(0, 50).forEach((row, rowIndex) => {  // Limit rows
+        const yPos = headerPosition + 30 + (rowIndex * 15);
+        headers.slice(0, 8).forEach((header, i) => {
+          const cellText = (row[header]?.toString() || '').substring(0, 25);
+          doc.text(cellText, 50 + i * 80, yPos, { width: 80 });
         });
       });
       
       doc.end();
       
-      stream.on('finish', () => resolve(filename));
+      stream.on('data', chunk => buffers.push(chunk));
+      stream.on('end', () => resolve(Buffer.concat(buffers)));
       stream.on('error', reject);
     });
   },
@@ -74,7 +85,7 @@ module.exports = {
    */
   async generateDOCX(data, filename = 'transactions.docx') {
     const headers = Object.keys(data[0] || {});
-    const rows = [headers, ...data.map(row => headers.map(h => row[h] || ''))];
+    const rows = [headers, ...data.slice(0, 100).map(row => headers.slice(0, 8).map(h => (row[h] || '').toString().substring(0, 50)))];
     
     const doc = new Document({
       sections: [{
@@ -94,9 +105,9 @@ module.exports = {
           }),
           new Table({
             rows: rows.map(row => new TableRow({
-              children: row.map(cell => new TableCell({
+              children: row.map((cell, colIdx) => new TableCell({
                 children: [new Paragraph(cell.toString())],
-                width: { size: 100 / row.length, type: WidthType.PERCENTAGE }
+                width: { size: 100 / Math.min(8, headers.length), type: WidthType.PERCENTAGE }
               }))
             }))
           })
@@ -105,8 +116,7 @@ module.exports = {
     });
     
     const buffer = await Packer.toBuffer(doc);
-    fs.writeFileSync(filename, buffer);
-    return filename;
+    return buffer;
   },
 
   /**
@@ -114,8 +124,6 @@ module.exports = {
    */
   generateCSV(data, filename = 'transactions.csv') {
     const headers = Object.keys(data[0] || {});
-    const csv = stringify(data, { header: true, columns: headers });
-    fs.writeFileSync(filename, csv);
-    return filename;
+    return stringify(data, { header: true, columns: headers });
   }
 };
