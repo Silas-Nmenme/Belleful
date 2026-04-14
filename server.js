@@ -86,6 +86,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/contact', require('./routes/contact'));
+app.use('/api/staff', require('./routes/staff'));
 
 // ===== 5. 404 HANDLER =====
 app.use('*', (req, res) => {

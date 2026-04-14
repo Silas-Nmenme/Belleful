@@ -24,6 +24,7 @@ const loginValidation = [
 // ===== PUBLIC ROUTES =====
 router.post('/register', registerValidation, authController.register);
 router.post('/admin-register', registerValidation, authController.registerAdmin);
+router.post('/admin-register-staff', registerValidation, require('../middleware/role').isAdmin, authController.adminRegisterStaff);
 router.post('/verify-otp', [
   body('email').isEmail(),
   body('otp').trim().isLength({ min: 6, max: 6 }).withMessage('Invalid OTP code').isNumeric()
