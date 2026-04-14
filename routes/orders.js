@@ -16,16 +16,15 @@ router.post('/checkout', orderController.checkout);
 router.get('/my-orders', orderController.getMyOrders);
 router.get('/my-orders/:id', orderController.getMyOrderById);
 
+// Download routes 
+router.get('/download-my-transactions', orderController.downloadMyTransactions);  // Users: their orders only (no admin needed)
+router.get('/admin/download', isAdmin, orderController.downloadAdminTransactions);  // Admins: all orders
+
 // Admin routes
 router.get('/', isAdmin, orderController.getAllOrders);
 router.get('/admin', isAdmin, orderController.getAllOrders);
 router.patch('/:id/status', isAdmin, orderController.updateStatus);
 router.get('/:id', isAdmin, orderController.getOrderById);
-
-// Download routes
-//router.get('/my-orders/download', orderController.downloadMyTransactions);
-router.get('/download-my-transactions', orderController.downloadMyTransactions);  // Alias for frontend compatibility
-router.get('/admin/download', isAdmin, orderController.downloadAdminTransactions);
 
 module.exports = router;
 
