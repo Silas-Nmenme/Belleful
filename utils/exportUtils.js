@@ -8,29 +8,47 @@ module.exports = {
   /**
    * Format orders data for export (consistent columns)
    */
-  formatOrdersData(orders, type = 'user') {
+formatOrdersData(orders, type = 'user') {
     return orders.map(order => {
+      // Fully defensive: compute virtuals, ensure all fields exist
+      const _id = order._id ? order._id.toString() : '';
+      const items = Array.isArray(order.items) ? order.items : [];
+      const itemCount = items.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
+      const displayId = `#${_id.slice(-6).toUpperCase()}`;
+      
       const safeOrder = {
         ...order,
+        displayId,
+        itemCount,
         totalAmount: Number(order.totalAmount || 0),
-        items: Array.isArray(order.items) ? order.items : []
+        items
       };
       
+      // Safe date handling
+      let orderDate;
+      try {
+        orderDate = new Date(safeOrder.createdAt || Date.now());
+      } catch {
+        orderDate = new Date();
+      }
+      
       const row = {
-        'Order ID': safeOrder.displayId || `#${safeOrder._id?.slice(-6)}`,
-        'Date': new Date(safeOrder.createdAt || Date.now()).toLocaleDateString(),
-        'Status': (safeOrder.orderStatus || 'N/A').replace('_', ' ').toUpperCase(),
+        'Order ID': displayId,
+        'Date': orderDate.toLocaleDateString(),
+        'Status': (safeOrder.orderStatus || 'N/A').replace(/_/g, ' ').toUpperCase(),
         'Method': (safeOrder.deliveryMethod || 'N/A').toUpperCase(),
-        'Items': safeOrder.itemCount || safeOrder.items.length || 0,
+        'Items': itemCount,
         'Total': `$${safeOrder.totalAmount.toFixed(2)}`,
-        'Phone': safeOrder.phoneNumber || 'N/A',
-        'ItemsDetail': safeOrder.items.slice(0, 5).map(item => 
-          `${item.name || 'N/A'} x${item.quantity || 1} @$${(Number(item.price) || 0).toFixed(2)}`
-        ).join('; ') || 'No items'
+        'Phone': safeOrder.phoneNumber?.trim() || 'N/A',
+        'ItemsDetail': items.slice(0, 5).map(item => 
+          `${item.name || 'N/A'} x${Number(item.quantity) || 1} @$${Number(item.price || 0).toFixed(2)}`
+        ).join('; ') + (items.length > 5 ? '...' : '') || 'No items'
       };
       
       if (type === 'admin') {
-        row.Customer = safeOrder.user?.name || (safeOrder.user?.email || '').split('@')[0] || 'N/A';
+        const userName = safeOrder.user?.name?.trim() || 
+                        (safeOrder.user?.email || '').split('@')[0] || 'N/A';
+        row.Customer = userName;
         row['Payment Status'] = safeOrder.paymentStatus || 'Pending';
         row['Notes'] = (safeOrder.notes || '').substring(0, 50);
       }
