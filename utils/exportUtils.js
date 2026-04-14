@@ -99,42 +99,54 @@ formatOrdersData(orders, type = 'user') {
   },
 
   /**
-   * Generate DOCX
+   * Generate DOCX - Vercel-safe with fallback
    */
   async generateDOCX(data, filename = 'transactions.docx') {
-    const headers = Object.keys(data[0] || {});
-    const rows = [headers, ...data.slice(0, 100).map(row => headers.slice(0, 8).map(h => (row[h] || '').toString().substring(0, 50)))];
-    
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            children: [
-              new docx.TextRun({
-                text: "Transaction Report",
-                bold: true,
-                size: 28
-              })
-            ]
-          }),
-          new Paragraph({
-            children: [new docx.TextRun(`Generated: ${new Date().toLocaleString()}`)]
-          }),
-          new Table({
-            rows: rows.map(row => new TableRow({
-              children: row.map((cell, colIdx) => new TableCell({
-                children: [new Paragraph(cell.toString())],
-                width: { size: 100 / Math.min(8, headers.length), type: WidthType.PERCENTAGE }
+    try {
+      // Dynamic require for Vercel compatibility
+      const docx = require('docx');
+      const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType } = docx;
+      const { TextRun } = docx;
+      
+      const headers = Object.keys(data[0] || {});
+      const rows = [headers, ...data.slice(0, 100).map(row => headers.slice(0, 8).map(h => String(row[h] || '').substring(0, 50)))];
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Transaction Report",
+                  bold: true,
+                  size: 28
+                })
+              ]
+            }),
+            new Paragraph({
+              children: [new TextRun(`Generated: ${new Date().toLocaleString()}`)]
+            }),
+            new Table({
+              rows: rows.map(row => new TableRow({
+                children: row.map((cell, colIdx) => new TableCell({
+                  children: [new Paragraph(String(cell))],
+                  width: { size: 100 / Math.min(8, headers.length), type: WidthType.PERCENTAGE }
+                }))
               }))
-            }))
-          })
-        ]
-      }]
-    });
-    
-    const buffer = await Packer.toBuffer(doc);
-    return buffer;
+            })
+          ]
+        }]
+      });
+      
+      const buffer = await Packer.toBuffer(doc);
+      return buffer;
+    } catch (docxErr) {
+      console.error('DOCX generation failed:', docxErr.message);
+      // Fallback: Return CSV as .docx-named text (better than 500)
+      const csvFallback = this.generateCSV(data);
+      return Buffer.from(`DOCX unavailable - CSV fallback:\n\n${csvFallback}`, 'utf-8');
+    }
   },
 
   /**
