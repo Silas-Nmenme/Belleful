@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Belleful</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/checkout.css">
+    <link rel="stylesheet" href="css/logo.css">
+
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="user-dashboard.html">
+              <img src="asset/logo.jpeg" alt="Belleful" class="navbar-brand-logo" loading="lazy">
+              <span>Belleful</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="user-dashboard.html">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="user-dashboard.html#menu">
+                            <i class="fas fa-utensils me-1"></i>Menu
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="cart.html">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Cart
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown" id="userDropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img class="rounded-circle me-2" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=32" width="32" height="32" alt="Profile" id="profileAvatar">
+                            <span id="profileName">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="user-dashboard.html">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </button></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5 mt-5">
+        <div class="row justify-content-center mb-4">
+            <div class="col-12 text-center">
+                <h1 class="display-5 fw-bold text-dark mb-3">
+                    <i class="fas fa-credit-card text-primary me-3"></i>Checkout
+                </h1>
+                <p class="lead text-muted">Complete your order securely</p>
+            </div>
+        </div>
+
+        <div class="row g-5">
+            <!-- Order Summary -->
+            <div class="col-lg-7">
+                <div class="card shadow-xl border-0 rounded-4" data-aos="fade-right">
+                    <div class="card-header bg-light">
+                        <h4 class="mb-0 fw-bold">
+                            <i class="fas fa-receipt me-2 text-primary"></i>Order Summary
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="checkoutItems" class="mb-4">
+                            <!-- Items will be populated by JavaScript -->
+                        </div>
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h4 fw-bold text-dark mb-0">Total Amount:</span>
+                            <div class="h3 fw-bold text-success mb-0" id="checkoutTotal">₦0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="col-lg-5">
+                <div class="card shadow-xl border-0 rounded-4 h-100" data-aos="fade-left">
+                    <div class="card-header bg-success text-white text-center py-4">
+                        <i class="fas fa-university fa-3x mb-3"></i>
+                        <h4 class="mb-2 fw-bold">Secure Bank Transfer</h4>
+                        <p class="mb-0 opacity-75 small">Pay directly to our verified account</p>
+                    </div>
+    <div class="card-body p-4">
+                        <form id="checkoutForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold mb-2">Delivery Method <span class="text-danger">*</span></label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="deliveryMethod" id="pickup" value="pickup" required>
+                                    <label class="btn btn-outline-primary rounded-start" for="pickup">
+                                        <i class="fas fa-map-marker-alt me-1"></i>Pickup
+                                    </label>
+                                    <input type="radio" class="btn-check" name="deliveryMethod" id="delivery" value="delivery" required checked>
+                                    <label class="btn btn-outline-primary rounded-end" for="delivery">
+                                        <i class="fas fa-truck me-1"></i>Delivery
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 delivery-address-group" id="deliveryAddressGroup">
+                                <label class="form-label fw-bold mb-2">Delivery Address <span class="text-danger">*</span></label>
+                                <textarea class="form-control" name="deliveryAddress" id="deliveryAddress" rows="3" placeholder="House number, street, area, city, landmarks..." required></textarea>
+                            </div>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold mb-2">Phone Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" name="phoneNumber" placeholder="080 1234 5678" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold mb-2">Your Bank Account (for reference)</label>
+                                    <input type="text" class="form-control" name="bankAccount" placeholder="Enter your account number">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold mb-2">Bank Name</label>
+                                <input type="text" class="form-control" name="bankName" placeholder="Enter bank name">
+                            </div>
+                        </form>
+                        
+                        <div class="payment-details mb-4 p-4 bg-light rounded-3">
+                            <h5 class="text-center fw-bold mb-4 text-dark">
+                                <i class="fas fa-money-bill-wave me-2 text-success"></i>Payment Details
+                            </h5>
+
+                            <div class="row text-center mb-4">
+                                <div class="col-12 mb-3">
+                                    <div class="bg-white p-3 rounded-3 border border-primary">
+                                        <div class="h2 fw-bold text-primary mb-1" id="accountNumber">8107586167</div>
+                                        <div class="text-muted small">Opay Account Number</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold text-center w-100 mb-2">Amount to Transfer</label>
+                                    <div class="form-control border-primary bg-white py-3 text-center fw-bold h4 text-primary" id="paymentAmount" readonly>₦0</div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="copyPaymentDetails()">
+                                    <i class="fas fa-copy me-1"></i>Copy Account Details
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" form="checkoutForm" id="createOrderBtn" class="btn btn-primary w-100 btn-lg py-4 fw-bold shadow-lg mb-4">
+                            <i class="fas fa-shopping-cart me-2"></i>Create Pending Order
+                        </button>
+
+                        <div id="uploadSection" class="d-none">
+                            <form id="paymentUploadForm" enctype="multipart/form-data" class="dropzone p-4 border-dashed rounded-3 mb-4" novalidate>
+                                <div class="text-center">
+                                    <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-4"></i>
+                                    <h5 class="fw-bold mb-3">Upload Payment Receipt</h5>
+                                    <p class="text-muted mb-4">Take photo/screenshot of transfer to Opay 8107586167 (Order #<span id="uploadOrderId"></span>)</p>
+                                    <input type="file" id="receiptFile" class="form-control form-control-lg" accept="image/*" placeholder="Choose receipt image" required>
+
+                                    <div class="invalid-feedback"></div>
+                                    <button type="submit" class="btn btn-success w-100 mt-4 btn-lg fw-bold py-3">
+                                        <i class="fas fa-upload me-2"></i>Upload & Submit Order
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="text-center text-success fw-bold fs-5 mb-3">
+                                <i class="fas fa-clock me-2"></i>Order Created! Waiting admin approval...
+                            </div>
+                            <div class="progress progress-lg">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning progress-bar-init" role="progressbar">
+                                    Pending Verification
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="mt-4 p-3 bg-light rounded-3">
+                            <h6 class="fw-bold mb-3 text-primary">
+                                <i class="fas fa-list-check me-2"></i>Payment Instructions
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-primary me-2 mt-1">1</span>
+                                        <small>Transfer the exact amount to Opay account: <strong>8107586167</strong></small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-primary me-2 mt-1">2</span>
+                                        <small>Take a screenshot/photo of the successful transfer</small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-primary me-2 mt-1">3</span>
+                                        <small>Upload the receipt using the form below</small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-success me-2 mt-1">4</span>
+                                        <small>Admin will verify within 10 minutes</small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-success me-2 mt-1">5</span>
+                                        <small>Order confirmed → Real-time tracking begins</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="js/constants.js"></script>
+    <script src="js/auth-helpers.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/checkout-page.js"></script>
+    <script>
+        AOS.init({duration: 800});
+        
+        // Copy payment details function
+        function copyPaymentDetails() {
+            const accountNumber = document.getElementById('accountNumber').textContent;
+            const amount = document.getElementById('paymentAmount').textContent;
+            
+            const details = `Opay Account: ${accountNumber}\nAmount: ${amount}\nBank: Opay`;
+            
+            navigator.clipboard.writeText(details).then(() => {
+                showToast('Payment details copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = details;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Payment details copied to clipboard!', 'success');
+            });
+        }
+        
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `page-toast page-toast--${type} fade-in-up`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load user profile
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const name = user.name || user.email?.split('@')[0] || 'User';
+            const avatarUrl = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff&size=32`;
+            
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileAvatar').src = avatarUrl;
+            
+            // Initialize checkout after DOM ready
+            if (typeof initCheckout === 'function') {
+                initCheckout();
+            }
+        });
+    </script>
+
+</body>
+</html>

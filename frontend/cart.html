@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart - Belleful</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="css/index.css" rel="stylesheet">
+  <link href="css/cart.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/logo.css">
+
+</head>
+<body class="bg-light">
+  <!-- Navbar - Logged-in only, dashboard-focused -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-gradient-warm shadow-lg">
+    <div class="container">
+      <a class="navbar-brand" href="user-dashboard.html">
+        <img src="asset/logo.jpeg" alt="Belleful" class="navbar-brand-logo" loading="lazy">
+        <span>Belleful</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="user-dashboard.html">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="user-dashboard.html#menu">Menu</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="cart.html">
+              <i class="fas fa-shopping-cart fs-5"></i>
+<span class="badge bg-danger cart-badge cart-count position-absolute top-0 start-100 translate-middle" id="cartBadge">0</span>
+            </a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+              <img class="rounded-circle me-2" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=32" width="32" height="32" alt="Profile">
+<span id="profileNameNav">User</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="user-dashboard.html"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><button class="dropdown-item text-danger" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</button></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="cart-container pt-5">
+    <!-- Header -->
+<div class="cart-header pb-4 mb-4">
+      <h1 class="h2 fw-bold">My Cart</h1>
+      <div class="cart-status ms-auto">
+        <span id="cartItemCount" class="badge bg-primary fs-6">0 items</span>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Cart Items -->
+      <div class="col-lg-8">
+        <div class="cart-items-grid" id="cartItems"></div>
+      </div>
+
+      <!-- Summary Sidebar -->
+      <div class="col-lg-4">
+        <div class="cart-summary sticky-top" style="top: 100px;"></div>
+      </div>
+    </div>
+  </div>
+
+<!-- Error Banner -->
+  <div id="errorBanner" class="alert alert-warning alert-dismissible fade hide position-fixed top-0 start-50 translate-middle-x mt-5 z-3" role="alert" style="max-width: 500px;">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span id="errorMessage"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  
+  <!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Load profile name on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const name = user.name || user.email?.split('@')[0] || 'User';
+      document.getElementById('profileNameNav').textContent = name;
+      
+      // Listen for cart updates
+      document.addEventListener('cartUpdated', (e) => {
+        const count = e.detail || 0;
+        const badge = document.getElementById('cartBadge');
+        const itemCount = document.getElementById('cartItemCount');
+        if (badge) {
+          badge.textContent = count;
+          badge.classList.toggle('d-none', count === 0);
+        }
+        if (itemCount) {
+          itemCount.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+        }
+      });
+    });
+  </script>
+  
+  <!-- Fee Explanation Modals -->
+  <div class="modal fade" id="serviceModal" tabindex="-1" aria-labelledby="serviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold" id="serviceModalLabel">
+            <i class="fas fa-info-circle text-warning me-2"></i>
+            Service Fee Explanation
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="serviceModalBody">
+          <!-- Content populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold" id="deliveryModalLabel">
+            <i class="fas fa-truck text-primary me-2"></i>
+            Delivery Fee Explanation
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="deliveryModalBody">
+          <!-- Content populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="vatModal" tabindex="-1" aria-labelledby="vatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold" id="vatModalLabel">
+            <i class="fas fa-percent text-success me-2"></i>
+            VAT Explanation
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="vatModalBody">
+          <!-- Content populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project JS -->
+  <script src="js/constants.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/navigation.js"></script>
+
+</body>
+
+</html>
