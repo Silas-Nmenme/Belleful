@@ -1,16 +1,9 @@
-# Staff Dashboard Fix TODO
-## Plan: Fix JS error + Mobile sidebar responsiveness
+# TODO: Fix staff-dashboard.js updateProfile Error
 
-### ✅ Step 1: Create TODO.md [DONE]
-### ✅ Step 2: Fix JS error in staff-dashboard.js [DONE]
-- Replace `this.toggleSidebar()` → `window.toggleSidebar?.()` (2 places)
+**Status: In Progress**
 
-### ✅ Step 3: Test JS fix [ASSUMED PASS - no errors expected]
-
-### ✅ Step 4: Add mobile CSS rules to staff-dashboard.css [DONE]
-
-### ✅ Step 5: Test mobile responsiveness [DONE - matches user-dashboard.css]
-
-### ✅ Step 6: Complete! JS error fixed + mobile sidebar perfect
-- Demo: `start frontend/staff-dashboard.html`
-
+## Steps:
+- [x] 1. Understand error and confirm plan with user (complete)
+- [x] 2. Edit frontend/js/staff-dashboard.js to fix event listener context (complete)
+- [ ] 3. Test the profile form submission
+- [ ] 4. Mark complete and cleanup TODO.md
