@@ -114,13 +114,14 @@ const updateStatusLimited = async (req, res) => {
 const allowedTransitions = {
       'pending_approval': ['preparing'],
       'preparing': ['ready_for_pickup'],
-      'ready_for_pickup': ['delivered']
+      'ready_for_pickup': ['delivered'],
+      'delivered': ['preparing', 'cancelled']
     };
 
     if (!allowedTransitions[currentStatus]?.includes(status)) {
       return res.status(403).json({ 
         success: false, 
-        message: `Staff cannot change ${currentStatus} to ${status}. Allowed: ${allowedTransitions[currentStatus]?.join(', ') || 'none'}` 
+message: `Staff cannot change ${currentStatus} to ${status}. Allowed next: ${allowedTransitions[currentStatus]?.join(', ') || 'none'}` 
       });
     }
 
