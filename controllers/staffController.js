@@ -13,7 +13,7 @@ const getPendingOrders = async (req, res) => {
     const { limit = 20, page = 1, search = '', status } = req.query;
     const skip = (page - 1) * parseInt(limit);
 
-    let query = { orderStatus: { $in: ['pending_approval', 'preparing', 'ready_for_pickup'] } };
+let query = { orderStatus: { $in: ['pending_approval', 'preparing', 'ready_for_pickup', 'delivered'] } };
 
     if (search.trim()) {
       query.$or = [
@@ -23,7 +23,7 @@ const getPendingOrders = async (req, res) => {
       ];
     }
 
-    if (status && ['pending_approval', 'preparing', 'ready_for_pickup'].includes(status)) {
+if (status && ['pending_approval', 'preparing', 'ready_for_pickup', 'delivered'].includes(status)) {
       query.orderStatus = status;
     }
 
@@ -97,7 +97,7 @@ const updateStatusLimited = async (req, res) => {
     if (!Order.schema.path('orderStatus').enumValues.includes(status)) {
       return res.status(400).json({ 
         success: false, 
-        message: `Invalid status: ${status}. Staff can only use: preparing, ready_for_pickup` 
+    message: `Invalid status: ${status}. Staff can use: preparing, ready_for_pickup, delivered` 
       });
     }
 
@@ -111,9 +111,10 @@ const updateStatusLimited = async (req, res) => {
 
     const currentStatus = order.orderStatus;
 
-    const allowedTransitions = {
+const allowedTransitions = {
       'pending_approval': ['preparing'],
-      'preparing': ['ready_for_pickup']
+      'preparing': ['ready_for_pickup'],
+      'ready_for_pickup': ['delivered']
     };
 
     if (!allowedTransitions[currentStatus]?.includes(status)) {
@@ -143,7 +144,7 @@ const updateStatusLimited = async (req, res) => {
 const viewOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
-    const allowedStatuses = ['pending_approval', 'preparing', 'ready_for_pickup'];
+const allowedStatuses = ['pending_approval', 'preparing', 'ready_for_pickup', 'delivered'];
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       return res.status(400).json({ success: false, message: 'Invalid order ID' });
