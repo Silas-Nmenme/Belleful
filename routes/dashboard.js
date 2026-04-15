@@ -17,9 +17,7 @@ router.get('/admin/stats', dashboardController.getAdminStats);
 router.get('/admin/top-items', dashboardController.getTopItems);
 router.get('/admin/users', dashboardController.getAdminUsers);
 
-// ===== STAFF ROUTES =====
-router.get('/staff/stats', isStaff, dashboardController.getStaffStats);
-router.get('/staff/orders', isStaff, dashboardController.getStaffOrders);
-
 module.exports = router;
+
+
 
