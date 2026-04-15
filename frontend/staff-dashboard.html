@@ -11,178 +11,205 @@
     <link rel="stylesheet" href="css/logo.css">
 </head>
 <body>
+    <!-- Sidebar Toggle Functions - Prevents undefined errors -->
+    <script>
+        // Inline definitions like user-dashboard - executes immediately
+        window.setActiveNav = function(section) {
+            document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`.sidebar-nav a[href="#${section}"]`) || event?.target?.closest('.nav-link');
+            if (activeLink) activeLink.classList.add('active');
+            
+            const target = document.getElementById(section);
+            if (target) {
+                const navbarHeight = 80;
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - navbarHeight - 20;
+                window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+            }
+            
+            window.closeSidebar?.();
+            // Call staff manager if exists
+            if (window.StaffDashboardManager) {
+                window.StaffDashboardManager.showSection(section);
+            }
+        };
+
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('staffSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.toggle('show');
+            if (backdrop) backdrop.style.display = sidebar?.classList?.contains('show') ? 'block' : 'none';
+        };
+
+        window.closeSidebar = function() {
+            const sidebar = document.getElementById('staffSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.remove('show');
+            if (backdrop) backdrop.style.display = 'none';
+        };
+
+        // Responsive auto-close
+        if (window.addEventListener) {
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 992) window.closeSidebar();
+            });
+        }
+    </script>
+
+    <!-- Top Navbar - Simplified (no dropdown) -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-gradient-staff shadow-lg">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold fs-4" href="#">
                 <i class="fas fa-user-tie me-2"></i>Belleful Staff
             </a>
             <!-- Sidebar Toggle Button -->
-            <button class="sidebar-toggle btn btn-link text-white p-2 ms-3 me-lg-0 me-xl-3 d-block" type="button" onclick="if(window.StaffDashboardManager?.toggleSidebar){window.StaffDashboardManager.toggleSidebar();}" title="Toggle Menu" aria-label="Toggle sidebar menu">
+            <button class="sidebar-toggle btn btn-link text-white p-2 ms-3 me-lg-0 me-xl-3 d-block" type="button" onclick="toggleSidebar()" title="Toggle Menu" aria-label="Toggle sidebar menu">
                 <i class="fas fa-bars fa-lg sidebar-hamburger"></i>
             </button>
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-1 fs-5"></i>
-                        <span class="d-none d-md-inline">Staff</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><button class="dropdown-item" onclick="StaffDashboardManager?.logout?.() || logout()">
-                            <i class="fas fa-sign-out-alt me-2 text-danger"></i>Logout
-                        </button></li>
-                    </ul>
-                </li>
-            </ul>
         </div>
     </nav>
 
-    <div class="container-fluid py-5 mt-5 min-vh-100 bg-light">
-        <div class="row">
-            <!-- Sidebar Wrapper -->
-            <div class="sidebar-wrapper d-none position-fixed h-100" style="left: -100%; width: 260px; z-index: 1040; transition: left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);">
-                <!-- Toggle Overlay -->
-                <div class="sidebar-overlay position-fixed w-100 h-100 d-none bg-dark bg-opacity-50" style="z-index: 1039; top: 0; left: 0; transition: opacity 0.3s ease; opacity: 0;"></div>
-                
-                <!-- Sidebar -->
-                <nav class="sidebar card h-100 border-0 shadow-lg flex-shrink-0" id="staffSidebar" style="width: 100%;">
-                    <div class="card-body p-0">
-                        <!-- Sidebar Header -->
-                        <div class="sidebar-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-list-ul me-2"></i>Staff Menu
-                            </h6>
-                        </div>
-                        
-                        <!-- Sidebar Nav -->
-<ul class="nav flex-column sidebar-nav px-0">
-                            <li class="nav-item">
-                                <a class="nav-link active" href="#staff-orders" onclick="StaffDashboardManager.showSection('orders')">
-                                    <i class="fas fa-clock me-2"></i><span>Pending Orders</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#staff-profile" onclick="StaffDashboardManager.showProfileForm()">
-                                    <i class="fas fa-user-cog me-2"></i><span>Profile &amp; Settings</span>
-                                </a>
-                            </li>
-                        </ul>
+    <!-- Sidebar Backdrop & Sidebar (MATCHES user-dashboard exactly) -->
+    <div class="sidebar-backdrop d-none" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+    <div class="sidebar" id="staffSidebar">
+        <div class="sidebar-content">
+            <!-- Profile Header -->
+            <div id="sidebarProfile" class="profile-card">
+                <div class="p-4 text-center text-muted">
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 70px; height: 70px;">
+                        <i class="fas fa-user-tie fa-lg text-staff-primary"></i>
                     </div>
-                </nav>
+                    <h6 class="fw-bold mb-2 text-staff-primary">Staff Account</h6>
+                    <p class="small mb-0">Dashboard Menu</p>
+                </div>
             </div>
-
-            <!-- Main Content -->
-            <div class="col-12 main-content" style="transition: margin-left 0.3s ease;">
-                <!-- Staff Stats -->
-                <section id="staff-stats" class="mb-5">
-                    <div class="row g-4 mb-5" id="staffStats">
-                        <!-- Stats loaded here -->
-                    </div>
-                </section>
-
-                <!-- Pending Orders (Staff Only) -->
-                <section id="staff-orders">
-                    <div class="card shadow-xl border-0 rounded-4 mb-5">
-                        <div class="card-header bg-staff-primary text-white">
-                            <h4 class="mb-0 fw-bold">
-                                <i class="fas fa-clock me-2"></i>Pending / Preparing Orders 
-                                <span class="badge bg-light text-staff-primary ms-2" id="staffPendingCount">0</span>
-                            </h4>
-                        </div>
-                        <div class="card-body p-0">
-                            <!-- Orders Filter -->
-                            <div class="p-4 border-bottom">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <input type="text" class="form-control" id="staffOrdersSearch" placeholder="Search orders..." oninput="StaffDashboardManager?.loadStaffOrders()">
-                                    </div>
-                                    <div class="col-md-3">
-<select class="form-select" id="staffOrderStatusFilter" title="Filter orders" onchange="StaffDashboardManager?.loadStaffOrders(1, '', this.value)">
-
-                                            <option value="">All Pending</option>
-                                            <option value="pending_approval">Pending Approval</option>
-                                            <option value="preparing">Preparing</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button class="btn btn-outline-staff-primary" onclick="StaffDashboardManager?.loadStaffOrders()">
-                                            <i class="fas fa-refresh"></i> Refresh
-                                        </button>
-                <!-- Profile Section -->
-                <section id="staff-profile" class="profile-section mb-5" style="display: none;">
-                    <div class="card shadow-xl border-0 rounded-4">
-                        <div class="card-header bg-gradient-profile text-white">
-                            <h4 class="mb-0 fw-bold">
-                                <i class="fas fa-user me-2"></i>My Profile
-                            </h4>
-                        </div>
-                        <div class="card-body p-4">
-                            <form id="profileUpdateForm" enctype="multipart/form-data">
-                                <div class="row">
-                                    <div class="col-md-4 text-center mb-4">
-                                        <div class="profile-avatar-container position-relative">
-                                            <img id="profileAvatar" src="" alt="Avatar" class="rounded-circle shadow-lg mb-3" style="width: 150px; height: 150px; object-fit: cover;">
-                                            <label for="avatarInput" class="avatar-upload-btn position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow" title="Change photo">
-                                                <i class="fas fa-camera"></i>
-                                            </label>
-                                            <input type="file" id="avatarInput" name="avatar" accept="image/*" class="d-none" onchange="StaffDashboardManager.previewAvatar(event)">
-                                        </div>
-                                        <p id="profileEmail" class="text-muted mb-0"></p>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="row g-3">
-                                            <div class="col-md-8">
-                                                <label class="form-label fw-bold">Full Name</label>
-                                                <input type="text" class="form-control" id="profileName" name="name" required>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label fw-bold">Role</label>
-                                                <input type="text" class="form-control bg-light" id="profileRole" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="mt-4">
-                                            <button type="submit" class="btn btn-primary btn-lg me-2" id="updateProfileBtn">
-                                                <span class="btn-text"><i class="fas fa-save me-2"></i>Update Profile</span>
-                                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="StaffDashboardManager.hideProfileForm()">
-                                                <i class="fas fa-times me-2"></i>Cancel
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </section>
-            </div>
+            
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar-nav p-0">
+                <a href="#staff-orders" class="nav-link active" onclick="setActiveNav('staff-orders')">
+                    <i class="fas fa-clock"></i><span>Pending Orders</span>
+                </a>
+                <a href="#staff-profile" class="nav-link" onclick="setActiveNav('staff-profile'); StaffDashboardManager?.showProfileForm?.();">
+                    <i class="fas fa-user-cog"></i><span>Profile & Settings</span>
+                </a>
+                <a href="#" class="nav-link text-danger" onclick="closeSidebar(); StaffDashboardManager?.logout?.() || logout()">
+                    <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+                </a>
+            </nav>
         </div>
     </div>
-                            <!-- Table -->
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Customer</th>
-                                            <th>Items</th>
-                                            <th>Total</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="staffOrdersTable">
-                                        <!-- Orders loaded here -->
-                                    </tbody>
-                                </table>
+
+    <!-- App Wrapper -->
+    <div class="app-wrapper">
+        <div class="main-content">
+            <!-- Staff Stats -->
+            <section id="staff-stats" class="mb-5">
+                <div class="row g-4 mb-5" id="staffStats">
+                    <!-- Stats loaded by JS -->
+                </div>
+            </section>
+
+            <!-- Pending Orders Section -->
+            <section id="staff-orders">
+                <div class="card shadow-xl border-0 rounded-4 mb-5">
+                    <div class="card-header bg-staff-primary text-white">
+                        <h4 class="mb-0 fw-bold">
+                            <i class="fas fa-clock me-2"></i>Pending / Preparing Orders 
+                            <span class="badge bg-light text-staff-primary ms-2" id="staffPendingCount">0</span>
+                        </h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Orders Filter -->
+                        <div class="p-4 border-bottom">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" id="staffOrdersSearch" placeholder="Search orders..." oninput="StaffDashboardManager?.loadStaffOrders()">
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="staffOrderStatusFilter" title="Filter orders" onchange="StaffDashboardManager?.loadStaffOrders(1, '', this.value)">
+                                        <option value="">All Pending</option>
+                                        <option value="pending_approval">Pending Approval</option>
+                                        <option value="preparing">Preparing</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-outline-staff-primary" onclick="StaffDashboardManager?.loadStaffOrders()">
+                                        <i class="fas fa-refresh"></i> Refresh
+                                    </button>
+                                </div>
+                                <!-- Profile Section (unchanged) -->
+                                <section id="staff-profile" class="profile-section mb-5" style="display: none;">
+                                    <div class="card shadow-xl border-0 rounded-4">
+                                        <div class="card-header bg-gradient-profile text-white">
+                                            <h4 class="mb-0 fw-bold">
+                                                <i class="fas fa-user me-2"></i>My Profile
+                                            </h4>
+                                        </div>
+                                        <div class="card-body p-4">
+                                            <form id="profileUpdateForm" enctype="multipart/form-data">
+                                                <div class="row">
+                                                    <div class="col-md-4 text-center mb-4">
+                                                        <div class="profile-avatar-container position-relative">
+                                                            <img id="profileAvatar" src="" alt="Avatar" class="rounded-circle shadow-lg mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                                                            <label for="avatarInput" class="avatar-upload-btn position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow" title="Change photo">
+                                                                <i class="fas fa-camera"></i>
+                                                            </label>
+                                                            <input type="file" id="avatarInput" name="avatar" accept="image/*" class="d-none" onchange="StaffDashboardManager.previewAvatar(event)">
+                                                        </div>
+                                                        <p id="profileEmail" class="text-muted mb-0"></p>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <div class="row g-3">
+                                                            <div class="col-md-8">
+                                                                <label class="form-label fw-bold">Full Name</label>
+                                                                <input type="text" class="form-control" id="profileName" name="name" required>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label fw-bold">Role</label>
+                                                                <input type="text" class="form-control bg-light" id="profileRole" readonly>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mt-4">
+                                                            <button type="submit" class="btn btn-primary btn-lg me-2" id="updateProfileBtn">
+                                                                <span class="btn-text"><i class="fas fa-save me-2"></i>Update Profile</span>
+                                                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="StaffDashboardManager.hideProfileForm()">
+                                                                <i class="fas fa-times me-2"></i>Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </section>
                             </div>
                         </div>
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Customer</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffOrdersTable">
+                                    <!-- Orders loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
         </div>
     </div>
 
-    <!-- Order Details Modal -->
+    <!-- Order Details Modal (unchanged) -->
     <div class="modal fade" id="staffOrderModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
@@ -203,6 +230,7 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="js/constants.js"></script>
@@ -210,9 +238,7 @@
     <script src="js/staff-dashboard.js"></script>
     <script>
         AOS.init();
-        // StaffDashboardManager auto-initializes on DOMContentLoaded
-        // No manual polling needed - handles auth/stats safely
+        // StaffDashboardManager auto-initializes
     </script>
 </body>
 </html>
-

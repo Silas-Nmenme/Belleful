@@ -29,21 +29,24 @@
         },
         
         // ===== SIDEBAR =====
-toggleSidebar() {
-            const sidebarWrapper = document.querySelector('.sidebar-wrapper');
-            const overlay = document.querySelector('.sidebar-overlay');
-            const toggleBtn = document.querySelector('.sidebar-toggle');
-            
-            sidebarWrapper.classList.toggle('active');
-            overlay?.classList.toggle('active');
-            toggleBtn?.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        },
+/* OLD sidebar toggle functions REMOVED - using inline HTML functions like user-dashboard */
 
         initSidebar() {
-            const toggleBtn = document.querySelector('.sidebar-toggle');
-            const overlay = document.querySelector('.sidebar-overlay');
-            const sidebarWrapper = document.querySelector('.sidebar-wrapper');
+            // Enhanced responsive handling for new sidebar
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 992) {
+                    window.closeSidebar?.();
+                }
+            });
+            
+            // ESC key support
+            document.onkeydown = (e) => {
+                if (e.key === 'Escape') {
+                    window.closeSidebar?.();
+                }
+            };
+            
+            console.log('✅ Staff sidebar (new system) initialized');
             
             if (toggleBtn) toggleBtn.onclick = () => this.toggleSidebar();
             if (overlay) overlay.onclick = () => this.toggleSidebar();

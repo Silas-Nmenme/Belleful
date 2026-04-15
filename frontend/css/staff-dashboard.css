@@ -1,4 +1,5 @@
 /* Staff Dashboard CSS - Blue theme matching staff-login.css */
+@import url('user-dashboard.css') layer(staff); /* Import user-dashboard styles first */
 @import url('admin-dashboard.css');
 
 :root {
@@ -89,25 +90,15 @@
 
 /* Tablet & Mobile */
 @media (max-width: 991px) {
-    .sidebar-wrapper.active {
-        left: 0 !important;
-    }
-    
-    .sidebar-wrapper {
-        width: 85vw;
-        max-width: 320px;
-    }
+/* OLD wrapper styles removed - using new sidebar system */
 }
 
 @media (max-width: 768px) {
-    .sidebar-wrapper {
-        width: 90vw;
-        max-width: 280px;
-    }
+
     
-    .main-content {
+.main-content {
         margin-left: 0 !important;
-        padding-top: 80px;
+        padding-top: calc(var(--header-height, 80px) + 1rem);
     }
     
     .navbar-brand {
@@ -179,10 +170,11 @@
 }
 
 
-/* Smooth transitions */
-.sidebar-wrapper,
-.sidebar-overlay,
-.main-content {
+/* Smooth transitions - updated for new sidebar */
+.sidebar,
+.sidebar-backdrop,
+.main-content,
+.app-wrapper {
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
