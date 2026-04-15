@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
 const auth = require('../middleware/auth');
-const { isAdmin } = require('../middleware/role');
+const { isAdmin, isStaff } = require('../middleware/role');
 
 /**
  * Dashboard Routes - Stats & Analytics
@@ -16,6 +16,10 @@ router.use(isAdmin);
 router.get('/admin/stats', dashboardController.getAdminStats);
 router.get('/admin/top-items', dashboardController.getTopItems);
 router.get('/admin/users', dashboardController.getAdminUsers);
+
+// ===== STAFF ROUTES =====
+router.get('/staff/stats', isStaff, dashboardController.getStaffStats);
+router.get('/staff/orders', isStaff, dashboardController.getStaffOrders);
 
 module.exports = router;
 
