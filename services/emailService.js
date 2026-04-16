@@ -150,13 +150,31 @@ const sendContactAdminNotification = async (contact) => {
   );
 };
 
-const sendContactReply = async (email, name) => {
+const sendContactReply = async (email, name, customReply = null) => {
   if (!transporter) return { success: false };
 
-  const html = emailTemplates.contactReply(name);
+  let html;
+  if (customReply) {
+    // Custom admin reply
+    html = `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1e293b;">Re: Your Belleful Inquiry</h2>
+        <p>Hi ${name},</p>
+        <p>Thank you for contacting Belleful. Here's our response:</p>
+        <div style="background: #f8fafc; padding: 20px; border-left: 4px solid #3b82f6; margin: 20px 0; border-radius: 8px;">
+          <p style="white-space: pre-wrap; line-height: 1.6; margin: 0;">${customReply}</p>
+        </div>
+        <p>Best regards,<br>The Belleful Team<br><a href="mailto:${process.env.MAIL_USER}">${process.env.MAIL_USER}</a></p>
+      </div>
+    `;
+  } else {
+    // Auto-reply
+    html = emailTemplates.contactReply(name);
+  }
+  
   return sendTemplateEmail(
     email,
-    'We Received Your Message - Belleful',
+    customReply ? 'Re: Your Belleful Inquiry' : 'We Received Your Message - Belleful',
     html
   );
 };

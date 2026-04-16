@@ -157,12 +157,14 @@ const replyToContact = async (req, res) => {
     await contact.save();
 
     // Send email reply
-    const emailResult = await sendContactReply(contact.email, contact.name, replyText.trim());
+    const emailResult = await sendContactReply(contact.email, contact.name, replyText.trim()); 
+    console.log('Admin reply email result:', emailResult);
     if (emailResult.success) {
       newReply.emailSent = true;
       await contact.save();
     } else {
       console.error('Reply email failed:', emailResult);
+      console.log('sendContactReply args:', {email: contact.email, name: contact.name, replyText: replyText.trim()});
     }
 
     // Mark as ready
