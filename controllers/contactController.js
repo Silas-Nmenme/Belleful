@@ -51,20 +51,27 @@ const contactUs = [
   }
 ];
 
-// Get all contacts for admin (paginated, sorted newest first)
+// Get all contacts for admin (paginated, sorted newest first, status filter)
 const getAllContacts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const status = req.query.status; // unread, read, ready
+
+    const query = {};
+    if (status && ['unread', 'read', 'ready'].includes(status)) {
+      query.status = status;
+    }
 
     const [contacts, total] = await Promise.all([
-      Contact.find()
+      Contact.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .select('-replies') // Don't populate full replies for table
         .lean(),
-      Contact.countDocuments()
+      Contact.countDocuments(query)
     ]);
 
     res.json({
@@ -97,9 +104,87 @@ const getContactById = async (req, res) => {
   }
 };
 
+// Update contact status
+const updateContactStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['unread', 'read', 'ready'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const contact = await Contact.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      data: contact,
+      message: `Status updated to ${status}`
+    });
+  } catch (error) {
+    console.error('Update status error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Reply to contact
+const replyToContact = async (req, res) => {
+  try {
+    const { replyText } = req.body;
+    if (!replyText || replyText.trim().length < 10) {
+      return res.status(400).json({ success: false, message: 'Reply must be at least 10 characters' });
+    }
+
+    const contact = await Contact.findById(req.params.id);
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found' });
+    }
+
+    // Add reply
+    const newReply = {
+      replyText: replyText.trim(),
+      repliedBy: req.user?.name || 'Admin', // From auth middleware
+      emailSent: false
+    };
+
+    contact.replies.push(newReply);
+    await contact.save();
+
+    // Send email reply
+    const emailResult = await sendContactReply(contact.email, contact.name, replyText.trim());
+    if (emailResult.success) {
+      newReply.emailSent = true;
+      await contact.save();
+    } else {
+      console.error('Reply email failed:', emailResult);
+    }
+
+    // Mark as ready
+    contact.status = 'ready';
+    await contact.save();
+
+    res.json({ 
+      success: true, 
+      data: contact,
+      message: emailResult.success ? 'Reply sent successfully!' : 'Reply saved (email failed)'
+    });
+  } catch (error) {
+    console.error('Reply error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = { 
   contactUs, 
   getAllContacts, 
-  getContactById 
+  getContactById,
+  updateContactStatus,
+  replyToContact
 };
 
