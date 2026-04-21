@@ -4,6 +4,7 @@ const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
 const { sendNotification, sendAdminNotification } = require('../services/notificationService');
+const { sendOrderStatusUpdate } = require('../services/emailService');
 const { formatOrdersData, generatePDF, generateDOCX, generateCSV } = require('../utils/exportUtils');
 const path = require('path');
 const os = require('os');
