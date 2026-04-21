@@ -156,7 +156,7 @@ exports.adminVerifyReceipt = async (req, res) => {
 
     if (verified) {
       order.paymentStatus = 'verified';
-      order.orderStatus = 'preparing'; // Move to kitchen
+      order.orderStatus = 'payment_approved'; // NEW: Payment approved, ready for status updates
     } else {
       order.paymentStatus = 'failed';
       order.orderStatus = 'pending_payment'; // Back to payment step

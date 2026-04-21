@@ -321,12 +321,24 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // 4. Update
+// 4. Workflow validation - ENFORCE payment approval
     const oldStatus = order.orderStatus;
+    
+    // Prevent skipping payment approval
+    if (oldStatus === 'pending_approval' && finalStatus === 'preparing') {
+      if (order.paymentStatus !== 'verified') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Payment must be approved first. Use the "Approve Payment" button in dashboard.',
+          required: 'paymentStatus: verified'
+        });
+      }
+    }
+    
     order.orderStatus = finalStatus;
     await order.save();
     
-    console.log(`Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus}`);
+    console.log(`Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus} (payment: ${order.paymentStatus})`);
 
     // 5. Notify customer (fire & forget)
     sendOrderStatusUpdate(order, finalStatus).catch(err => console.error('Email failed:', err));

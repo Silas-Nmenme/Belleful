@@ -26,6 +26,7 @@ const orderItemSchema = new mongoose.Schema({
 const orderStatusEnum = [
   'pending_payment',
   'pending_approval', 
+  'payment_approved',
   'preparing',
   'ready_for_pickup',
   'out_for_delivery',
