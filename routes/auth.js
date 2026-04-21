@@ -50,6 +50,48 @@ const updateValidation = [
 // PUT /profile (multipart for avatar)
 router.put('/profile', auth, updateValidation, authController.upload.single('avatar'), authController.updateProfile);
 
+// ===== DEVICE TOKEN MANAGEMENT =====
+router.post('/register-device', auth, [
+  body('token').notEmpty().withMessage('Device token required'),
+  body('platform').optional().isIn(['web', 'android', 'ios']).withMessage('Invalid platform')
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Invalid device data', errors: errors.array() });
+  }
+  next();
+}, async (req, res) => {
+  try {
+    const { token, platform = 'web' } = req.body;
+    const User = require('../models/User');
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $addToSet: { deviceTokens: { token, platform } }
+    });
+
+    res.json({ success: true, message: 'Device registered for notifications' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/unregister-device', auth, [
+  body('token').notEmpty().withMessage('Device token required')
+], async (req, res) => {
+  try {
+    const { token } = req.body;
+    const User = require('../models/User');
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { deviceTokens: { token } }
+    });
+
+    res.json({ success: true, message: 'Device unregistered' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
 
 

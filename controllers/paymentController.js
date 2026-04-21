@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const { sendOrderStatusUpdate } = require('../services/emailService');
+const { sendNotification } = require('../services/notificationService');
 
 /**
  * Payment Controller - Receipt Upload & Verification
@@ -166,7 +167,23 @@ exports.adminVerifyReceipt = async (req, res) => {
     order.notes = notes || order.notes;
     await order.save();
 
-    // Notify customer
+    // Send push notifications
+    if (verified) {
+      sendNotification(order.user, '💰 Payment Approved!', 
+        'Your payment has been verified. Your order is now being prepared!', {
+        orderId: order._id.toString(),
+        status: 'payment_approved',
+        link: `${process.env.FRONTEND_URL}/order-tracking.html?id=${order._id}`
+      }).catch(err => console.error('Payment approval notification failed:', err));
+    } else {
+      sendNotification(order.user, '❌ Payment Rejected', 
+        'Your payment receipt was not accepted. Please upload a clearer image or contact support.', {
+        orderId: order._id.toString(),
+        status: 'payment_rejected'
+      }).catch(err => console.error('Payment rejection notification failed:', err));
+    }
+
+    // Notify customer via email
     sendOrderStatusUpdate(order, order.orderStatus).catch(err => 
       console.error('Order status update email failed:', err)
     );

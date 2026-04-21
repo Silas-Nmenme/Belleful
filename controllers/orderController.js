@@ -3,7 +3,7 @@ const fs = require('fs');
 const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
-const { sendOrderConfirmation, sendOrderAdminNotification, sendOrderStatusUpdate } = require('../services/emailService');
+const { sendNotification, sendAdminNotification } = require('../services/notificationService');
 const { formatOrdersData, generatePDF, generateDOCX, generateCSV } = require('../utils/exportUtils');
 const path = require('path');
 const os = require('os');
@@ -340,7 +340,55 @@ exports.updateStatus = async (req, res) => {
     
     console.log(`Status updated: ${orderId.slice(-8)} ${oldStatus} → ${finalStatus} (payment: ${order.paymentStatus})`);
 
-    // 5. Notify customer (fire & forget)
+    // 5. Send notifications (push + email)
+    const statusMessages = {
+      'preparing': {
+        title: '👨‍🍳 Order Started',
+        body: 'Your delicious meal is being prepared with care!',
+        user: true
+      },
+      'ready_for_pickup': {
+        title: '✅ Order Ready!',
+        body: 'Your order is ready for pickup. Please come to collect it.',
+        user: true
+      },
+      'out_for_delivery': {
+        title: '🚚 On the Way!',
+        body: 'Your order is out for delivery. Track your driver here.',
+        user: true
+      },
+      'delivered': {
+        title: '🎉 Order Delivered!',
+        body: 'Enjoy your meal! Thank you for choosing Belleful.',
+        user: true
+      },
+      'cancelled': {
+        title: '❌ Order Cancelled',
+        body: 'Your order has been cancelled. Please contact support for details.',
+        user: true
+      }
+    };
+
+    // Send push notification to customer
+    if (statusMessages[finalStatus]?.user) {
+      const msg = statusMessages[finalStatus];
+      sendNotification(order.user, msg.title, msg.body, {
+        orderId: order._id.toString(),
+        status: finalStatus,
+        link: `${process.env.FRONTEND_URL}/order-tracking.html?id=${order._id}`
+      }).catch(err => console.error('Push notification failed:', err));
+    }
+
+    // Notify admin of new orders or issues
+    if (finalStatus === 'pending_approval') {
+      sendAdminNotification(
+        '🆕 New Order Pending',
+        `Order #${order.displayId} needs payment verification`,
+        { orderId: order._id.toString(), type: 'new_order' }
+      ).catch(err => console.error('Admin notification failed:', err));
+    }
+
+    // 6. Send email notification (fire & forget)
     sendOrderStatusUpdate(order, finalStatus).catch(err => console.error('Email failed:', err));
 
     res.json({ 

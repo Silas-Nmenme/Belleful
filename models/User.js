@@ -55,7 +55,14 @@ enum: ['user', 'staff', 'admin'],
   },
   // Password Reset
   resetPasswordToken: String,
-  resetPasswordExpire: Date
+  resetPasswordExpire: Date,
+  // Push Notifications
+  deviceTokens: [{
+    token: String,
+    platform: { type: String, enum: ['web', 'android', 'ios'], default: 'web' },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  notificationsEnabled: { type: Boolean, default: true }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
