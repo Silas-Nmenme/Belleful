@@ -170,11 +170,66 @@ const allowedStatuses = ['pending_approval', 'preparing', 'ready_for_pickup', 'd
   }
 };
 
+// ===== STAFF: VERIFY RECEIPT (NEW - copy from paymentController) =====
+
+const staffVerifyReceipt = async (req, res) => {
+  try {
+    const { verified, notes } = req.body;
+    const orderId = req.params.id;
+
+    if (typeof verified !== 'boolean') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'verified status (true/false) required' 
+      });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+
+    if (verified) {
+      order.paymentStatus = 'verified';
+      order.orderStatus = 'payment_approved';
+    } else {
+      order.paymentStatus = 'failed';
+      order.orderStatus = 'pending_approval';
+    }
+
+    order.notes = notes || order.notes || 'Staff verified payment';
+    await order.save();
+
+    sendOrderStatusUpdate(order, order.orderStatus).catch(console.error);
+
+    res.json({
+      success: true,
+      data: {
+        orderId: order._id,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.orderStatus,
+        message: verified ? 'Payment approved, ready for preparation' : 'Payment rejected'
+      }
+    });
+  } catch (error) {
+    console.error('Staff verify receipt error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+
 module.exports = {
   getPendingOrders,
   getStaffStats,
   updateStatusLimited,
-  viewOrder
+  viewOrder,
+  staffVerifyReceipt
 };
+
 
 

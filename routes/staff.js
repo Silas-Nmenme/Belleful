@@ -20,4 +20,8 @@ router.get('/orders/:id', isStaff, staffController.viewOrder);
 // PATCH /api/staff/orders/:id/status - Limited status updates
 router.patch('/orders/:id/status', isStaff, staffController.updateStatusLimited);
 
+// POST /api/staff/orders/:id/verify-payment - Staff payment approval (NEW)
+router.post('/orders/:id/verify-payment', isStaff, staffController.staffVerifyReceipt);
+
 module.exports = router;
+
