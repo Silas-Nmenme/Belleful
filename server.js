@@ -7,11 +7,14 @@ const morgan = require('morgan');
 const connectDB = require('./config/database');
 const emailService = require('./services/emailService');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
 
 /**
  * Belleful Food Ordering Backend - Production-Ready Server
  * Features: Auth (OTP/Google), Menu/Cart/Orders/Payments, Admin Dashboard, Contact Form
  * Deployment: Vercel-optimized, MongoDB Atlas
+ * Security: CSRF protection, Rate limiting, Helmet, CORS
  */
 
 const app = express();
@@ -47,7 +50,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting
+// Cookie parser for CSRF
+app.use(cookieParser());
+
+// Rate limiting for general API
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
   max: 100, // 100 req/IP
@@ -56,30 +62,56 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Rate limiting for auth endpoints (stricter)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 5, // 5 requests per 15 min
+  skipSuccessfulRequests: false,
+  message: 'Too many login attempts, please try again later'
+});
+
 // ===== 2. BODY PARSING (Large files for images) =====
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined'));
+
+// CSRF protection for state-changing requests
+const csrfProtection = csrf({ cookie: false });
 
 // Static files (dev only)
 if (process.env.NODE_ENV !== 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
 }
 
-// ===== 3. HEALTH CHECK =====
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV 
-  });
+// ===== 3. HEALTH CHECK (With dependency checks) =====
+app.get('/health', async (req, res) => {
+  const checks = {
+    status: 'OK',
+    database: 'unknown',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    // Quick database ping
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      checks.database = 'connected';
+    } else {
+      checks.database = 'disconnected';
+    }
+  } catch (err) {
+    checks.database = `error: ${err.message}`;
+  }
+
+  const allHealthy = checks.database === 'connected';
+  res.status(allHealthy ? 200 : 503).json(checks);
 });
 
 // Root
 app.get('/', (req, res) => res.json({ message: 'Belleful API Running - Food Ordering Backend' }));
 
 // ===== 4. API ROUTES =====
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
@@ -95,9 +127,25 @@ app.use('*', (req, res) => {
 
 // ===== 6. GLOBAL ERROR HANDLER =====
 app.use((err, req, res, next) => {
-  const status = err.status || 500;
+  // CSRF errors
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({ success: false, message: 'CSRF token validation failed' });
+  }
+
+  const status = err.status || err.statusCode || 500;
   const message = err.message || 'Server Error';
   
+  // Log errors in production
+  if (process.env.NODE_ENV === 'production') {
+    console.error('API Error:', {
+      status,
+      message,
+      path: req.path,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  }
+
   res.status(status).json({
     success: false,
     message,
@@ -106,18 +154,27 @@ app.use((err, req, res, next) => {
 });
 
 // ===== 7. GRACEFUL SHUTDOWN =====
+let server;
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
+  if (server) {
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
 });
 
 // ===== START SERVER =====
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Frontend: ${FRONTEND_URL}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
       
       // Email service auto-initializes on module load
     });

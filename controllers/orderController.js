@@ -14,27 +14,27 @@ const { isAdmin } = require('../middleware/role');
  * Order Controller - Checkout & Lifecycle Management
  */
 
-// ===== CREATE ORDER (Checkout) =====
+// ===== CREATE ORDER (Checkout) - WITH TRANSACTIONS =====
 exports.checkout = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    console.log('Checkout payload:', { 
-      hasCartSnapshot: !!req.body.cartSnapshot, 
-      hasUser: !!req.user?._id,
-      grandTotal: req.body.grandTotal 
-    });
-    
     const { cartSnapshot, grandTotal, phoneNumber, bankAccount, bankName, deliveryAddress, deliveryMethod: clientDeliveryMethod } = req.body;
     
     // 1. Auth check
     if (!req.user?._id) {
+      await session.abortTransaction();
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
     
     // 2. Validate required fields FIRST
     if (!phoneNumber?.trim()) {
+      await session.abortTransaction();
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
     if (!bankAccount?.trim() || !bankName?.trim()) {
+      await session.abortTransaction();
       return res.status(400).json({ success: false, message: 'Bank account number and bank name are required' });
     }
     
@@ -44,10 +44,10 @@ exports.checkout = async (req, res) => {
     
     if (cartSnapshot?.items?.length) {
       // Validate frontend snapshot
-      console.log('Validating cartSnapshot:', cartSnapshot.items.length, 'items');
       for (let item of cartSnapshot.items) {
         const menuItemId = item.menuItem?._id || item.menuItem;
         if (!menuItemId || !item.name || typeof item.quantity !== 'number' || item.quantity < 1 || typeof item.price !== 'number' || item.price <= 0) {
+          await session.abortTransaction();
           return res.status(400).json({ success: false, message: `Invalid item: ${item.name || 'Unknown'} - check quantity/price/menuItem ID` });
         }
         
@@ -57,16 +57,9 @@ exports.checkout = async (req, res) => {
           try {
             validId = new mongoose.Types.ObjectId(menuItemId);
           } catch {
+            await session.abortTransaction();
             return res.status(400).json({ success: false, message: `Invalid menuItem ID: ${menuItemId}` });
           }
-        }
-        
-        const menuItem = await MenuItem.findById(validId);
-        if (!menuItem) {
-          return res.status(400).json({ success: false, message: `Menu item not found: ${item.name}` });
-        }
-        if (menuItem.stock < item.quantity) {
-          return res.status(400).json({ success: false, message: `${item.name} - only ${menuItem.stock} available (need ${item.quantity})` });
         }
         
         cartItems.push({
@@ -79,8 +72,9 @@ exports.checkout = async (req, res) => {
       finalDeliveryMethod = cartSnapshot.deliveryPreference || 'pickup';
     } else {
       // Fallback DB cart
-      const dbCart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem');
+      const dbCart = await Cart.findOne({ user: req.user._id }).populate('items.menuItem').session(session);
       if (!dbCart?.items?.length) {
+        await session.abortTransaction();
         return res.status(400).json({ success: false, message: 'No items in cart. Add items from menu first.' });
       }
       cartItems = dbCart.items.map(item => ({
@@ -93,17 +87,38 @@ exports.checkout = async (req, res) => {
     }
     
     if (!cartItems.length) {
+      await session.abortTransaction();
       return res.status(400).json({ success: false, message: 'No valid cart items found' });
     }
     
     if (finalDeliveryMethod === 'delivery' && !deliveryAddress?.trim()) {
+      await session.abortTransaction();
       return res.status(400).json({ success: false, message: 'Delivery address required' });
     }
     
     const calculatedTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const orderTotal = Number(grandTotal) || calculatedTotal;
     
-    // 4. Create order with EXPLICIT status
+    // 4. ATOMIC: Check stock for ALL items with lock, then update
+    for (let item of cartItems) {
+      const menuItem = await MenuItem.findByIdAndUpdate(
+        item.menuItem,
+        { $inc: { stock: -item.quantity } },
+        { new: true, session }
+      );
+      
+      if (!menuItem) {
+        await session.abortTransaction();
+        return res.status(400).json({ success: false, message: `Menu item not found: ${item.name}` });
+      }
+      
+      if (menuItem.stock < 0) {
+        await session.abortTransaction();
+        return res.status(400).json({ success: false, message: `${item.name} - insufficient stock (was decremented to ${menuItem.stock})` });
+      }
+    }
+    
+    // 5. Create order with EXPLICIT status (within transaction)
     const orderData = {
       user: req.user._id,
       items: cartItems,
@@ -112,34 +127,34 @@ exports.checkout = async (req, res) => {
       phoneNumber: phoneNumber.trim(),
       bankAccount: bankAccount.trim(),
       bankName: bankName.trim(),
-      orderStatus: 'pending_approval'  // EXPLICIT - was defaulting incorrectly
+      orderStatus: 'pending_approval'
     };
     
     if (finalDeliveryMethod === 'delivery') {
       orderData.deliveryAddress = deliveryAddress.trim();
     }
     
-    const order = await Order.create(orderData);
+    const [order] = await Order.create([orderData], { session });
     
-    // 5. Update stock & clear cart
-    for (let item of cartItems) {
-      await MenuItem.findByIdAndUpdate(item.menuItem, { $inc: { stock: -item.quantity } });
-    }
+    // 6. Clear cart (within transaction)
+    await Cart.findOneAndUpdate(
+      { user: req.user._id }, 
+      { $set: { items: [], grandTotal: 0, subtotal: 0 } },
+      { session }
+    );
     
-    await Cart.findOneAndUpdate({ user: req.user._id }, { 
-      $set: { items: [], grandTotal: 0, subtotal: 0 } 
-    }).exec();
+    // 7. Commit transaction
+    await session.commitTransaction();
     
+    // 8. Fetch populated order (outside transaction)
     const populatedOrder = await Order.findById(order._id)
       .populate('user', 'name email phoneNumber')
       .populate('items.menuItem', 'name image price')
       .lean();
 
-    // 6. Email notifications
+    // 9. Send email notifications (async, don't wait)
     sendOrderConfirmation(populatedOrder).catch(console.error);
     sendOrderAdminNotification(populatedOrder).catch(console.error);
-    
-    // 7. Return FULL populated order
     
     console.log(`Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
     
@@ -149,12 +164,15 @@ exports.checkout = async (req, res) => {
     });
     
   } catch (error) {
+    await session.abortTransaction();
     console.error('Checkout ERROR:', error);
     res.status(400).json({ 
       success: false, 
       message: error.message || 'Checkout failed - please try again',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  } finally {
+    session.endSession();
   }
 };
 

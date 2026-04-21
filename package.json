@@ -24,8 +24,10 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cloudinary": "1.41.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "csv-stringify": "^6.7.0",
+    "csurf": "^1.11.0",
     "deps": "^1.0.0",
     "docx": "^9.6.1",
     "dotenv": "^16.6.1",

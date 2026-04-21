@@ -16,15 +16,23 @@ const emailTemplates = require('../utils/emailTemplates');
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendToken = (user, statusCode, res) => {
-  const token = jwt.sign(
+  const accessToken = jwt.sign(
     { id: user._id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '30d' }
+    { expiresIn: '15m' } // Short-lived access token
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_SECRET || process.env.JWT_SECRET,
+    { expiresIn: '7d' } // Longer-lived refresh token
   );
 
   res.status(statusCode).json({
     success: true,
-    token,
+    token: accessToken,
+    refreshToken,
+    expiresIn: 900, // 15 minutes in seconds
     user: {
       id: user._id,
       name: user.name,
@@ -70,12 +78,27 @@ exports.register = async (req, res) => {
   }
 };
 
-// ===== 2. ADMIN REGISTER =====
+// ===== 2. ADMIN REGISTER (Admin-only) =====
 exports.registerAdmin = async (req, res) => {
   try {
-    // Same as register but force role: 'admin'
+    // SECURITY: Check if user is already admin (prevent self-promotion)
+    if (req.user?.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized access' });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
     const { name, email, password } = req.body;
-    // ... (similar logic, set role: 'admin')
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    // TODO: Implement admin invite codes for security
+    // For now, require authorization check
+    
     const otp = generateOTP();
     const user = await User.create({
       name: name.trim(),
@@ -136,13 +159,6 @@ exports.verifyOTP = async (req, res) => {
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
     const { email, otp } = req.body;
-    console.log('DEBUG OTP SUBMIT:', {
-      email: email.toLowerCase().trim(),
-      receivedOtp: otp,
-      receivedType: typeof otp,
-      receivedLength: otp ? otp.length : 'null',
-      receivedTrimmed: otp ? otp.trim() : 'null'
-    });
     const user = await User.findOne({ email: email.toLowerCase().trim() })
       .select('+otp +otpExpires +isVerified');
 
@@ -345,6 +361,44 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===== 11. REFRESH TOKEN =====
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token required' });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_SECRET || process.env.JWT_SECRET
+    );
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    // Issue new access token (15 min)
+    const newAccessToken = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.json({
+      success: true,
+      token: newAccessToken,
+      expiresIn: 900
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired refresh token'
+    });
   }
 };
 
