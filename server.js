@@ -65,9 +65,9 @@ app.use('/api/', limiter);
 // Rate limiting for auth endpoints (stricter)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 5, // 5 requests per 15 min
+  max: 25, // Increased to 25 for testing (5 was too strict)
   skipSuccessfulRequests: false,
-  message: 'Too many login attempts, please try again later'
+  message: 'Too many login attempts from this IP. Please wait 15 minutes or try a different network. (Max 25 attempts/15min)'
 });
 
 // ===== 2. BODY PARSING (Large files for images) =====
