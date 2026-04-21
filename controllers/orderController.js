@@ -146,21 +146,33 @@ exports.checkout = async (req, res) => {
     // 7. Commit transaction
     await session.commitTransaction();
     
-    // 8. Fetch populated order (outside transaction)
-    const populatedOrder = await Order.findById(order._id)
-      .populate('user', 'name email phoneNumber')
-      .populate('items.menuItem', 'name image price')
-      .lean();
-
-    // 9. Send email notifications (async, don't wait)
-    sendOrderConfirmation(populatedOrder).catch(console.error);
-    sendOrderAdminNotification(populatedOrder).catch(console.error);
-    
-    console.log(`Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
-    
+    // 8. Respond immediately with minimal data
     res.status(201).json({ 
       success: true, 
-      data: populatedOrder 
+      data: { _id: order._id, displayId: order.displayId }  // Minimal response
+    });
+    
+    // 9. Do heavy operations asynchronously (after response)
+    setImmediate(async () => {
+      try {
+        const populatedOrder = await Order.findById(order._id)
+          .populate('user', 'name email phoneNumber')
+          .populate('items.menuItem', 'name image price')
+          .lean();
+        
+        // Send notifications
+        sendNotification(req.user._id, 'Order Placed', `Your order ${populatedOrder.displayId} has been received and is pending approval.`, { orderId: populatedOrder._id });
+        sendAdminNotification('New Order', `Order ${populatedOrder.displayId} placed by ${populatedOrder.user.name}`, { orderId: populatedOrder._id });
+        
+        // Send emails
+        const { sendOrderConfirmation, sendOrderAdminNotification } = require('../services/emailService');
+        sendOrderConfirmation(populatedOrder).catch(console.error);
+        sendOrderAdminNotification(populatedOrder).catch(console.error);
+        
+        console.log(`Order created: #${populatedOrder.displayId} for user ${req.user.email}`);
+      } catch (err) {
+        console.error('Post-checkout error:', err);
+      }
     });
     
   } catch (error) {

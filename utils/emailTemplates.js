@@ -448,6 +448,45 @@ const emailTemplates = {
     });
   },
 
+  orderConfirmation: (order) => {
+    const itemRows = renderItemsTable(order.items || []);
+    const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const body = `
+      <div class="card">
+        <h2 class="section-title">Order Confirmed!</h2>
+        <p>Thank you for your order! We've received your payment details and your order is now being processed. You'll receive updates as we prepare your food.</p>
+      </div>
+      ${renderOrderDetailsSection(order)}
+      <div style="margin-bottom: 22px; overflow-x:auto;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: #e9ecef; text-align:left;">
+              <th style="padding: 12px 10px;">Item</th>
+              <th style="padding: 12px 10px; text-align:center;">Qty</th>
+              <th style="padding: 12px 10px; text-align:right;">Unit Price</th>
+              <th style="padding: 12px 10px; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRows}
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="background:#ffffff; border:none;">
+        <p style="margin: 0 0 8px 0;"><strong>Order total:</strong> ${formatCurrency(order.totalAmount)}</p>
+        <p style="margin: 0; color: #6c757d; font-size: 15px;">${totalItems} item${totalItems === 1 ? '' : 's'} in this order. Track your order status in your dashboard.</p>
+      </div>`;
+
+    return renderBaseTemplate({
+      title: 'Order Confirmation',
+      intro: `Your order ${order.displayId || '#'+order._id.toString().slice(-6)} has been received.`,
+      body,
+      ctaLabel: 'Track Your Order',
+      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      helpText: 'Questions? Reply to this email or contact our support team.'
+    });
+  },
+
   passwordReset: (name, resetUrl) => {
     const body = `
       <div class="card">
