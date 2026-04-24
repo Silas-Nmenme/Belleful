@@ -190,8 +190,32 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() })
       .select('+password');
 
-    if (!user || !(await user.matchPassword(password)) || !user.isVerified) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials or unverified email' });
+    // Check if user exists
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Incorrect email address',
+        code: 'EMAIL_NOT_FOUND'
+      });
+    }
+
+    // Check if email is verified
+    if (!user.isVerified) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Please verify your email first. Check your inbox for the OTP.',
+        code: 'EMAIL_NOT_VERIFIED'
+      });
+    }
+
+    // Check password
+    const passwordMatch = await user.matchPassword(password);
+    if (!passwordMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Incorrect password',
+        code: 'WRONG_PASSWORD'
+      });
     }
 
     await sendLoginSuccessEmail(user.email, user.name);
