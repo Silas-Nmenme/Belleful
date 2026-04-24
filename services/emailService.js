@@ -164,7 +164,7 @@ const sendContactReply = async (email, name, customReply = null) => {
         <div style="background: #f8fafc; padding: 20px; border-left: 4px solid #3b82f6; margin: 20px 0; border-radius: 8px;">
           <p style="white-space: pre-wrap; line-height: 1.6; margin: 0;">${customReply}</p>
         </div>
-        <p>Best regards,<br>The Belleful Team<br><a href="mailto:${process.env.MAIL_USER}">${process.env.MAIL_USER}</a></p>
+        <p>Best regards,<br>The Belleful Team<br><a href="mailto:${getAdminRecipient()}">${getAdminRecipient()}</a></p>
       </div>
     `;
   } else {
