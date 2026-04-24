@@ -59,19 +59,9 @@ exports.getCart = async (req, res) => {
           items: [], 
           deliveryType: 'pickup',
           subtotal: 0,
-          deliveryFee: 0,
-          serviceFee: 0,
-          vatRate: 0,
           grandTotal: 0,
           totalAmount: 0,
-          itemCount: 0,
-          breakdown: {
-            subtotal: 0,
-            deliveryFee: 0,
-            serviceFee: 0,
-            vat: 0,
-            grandTotal: 0
-          }
+          itemCount: 0
         } 
       });
     }
@@ -81,23 +71,14 @@ exports.getCart = async (req, res) => {
       await cart.save();
     }
 
-    // Compute itemCount and breakdown
+    // Compute itemCount
     const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-    const vatAmount = cart.subtotal * cart.vatRate;
-    const breakdown = {
-      subtotal: cart.subtotal,
-      deliveryFee: cart.deliveryFee,
-      serviceFee: cart.serviceFee,
-      vat: vatAmount,
-      grandTotal: cart.grandTotal
-    };
 
     res.json({ 
       success: true, 
       data: { 
         ...cart.toObject(),
-        itemCount,
-        breakdown 
+        itemCount
       } 
     });
   } catch (error) {

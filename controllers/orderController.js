@@ -98,7 +98,7 @@ exports.checkout = async (req, res) => {
     }
     
     const calculatedTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const orderTotal = Number(grandTotal) || calculatedTotal;
+    const orderTotal = calculatedTotal; // Server-side calculation only, no extra fees
     
     // 4. ATOMIC: Check stock for ALL items with lock, then update
     for (let item of cartItems) {

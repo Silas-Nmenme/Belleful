@@ -48,18 +48,6 @@ const cartSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  deliveryFee: {
-    type: Number,
-    default: 0
-  },
-  serviceFee: {
-    type: Number,
-    default: 500
-  },
-  vatRate: {
-    type: Number,
-    default: 0.015
-  },
   grandTotal: {
     type: Number,
     default: 0
@@ -79,15 +67,11 @@ const cartSchema = new mongoose.Schema({
 
 
 
-// Auto-calculate totals including fees and VAT
+// Auto-calculate totals (items only, no extra fees)
 cartSchema.pre('save', function(next) {
   this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  this.deliveryFee = this.deliveryType === 'delivery' ? 2000 : 0;
-  this.serviceFee = this.items.length ? 500 : 0;
-  this.vatRate = this.items.length ? 0.015 : 0;
-  const vatAmount = this.subtotal * this.vatRate;
-  this.grandTotal = this.subtotal + this.deliveryFee + this.serviceFee + vatAmount;
-  this.totalAmount = this.grandTotal; // Keep totalAmount for backwards compat
+  this.grandTotal = this.subtotal;
+  this.totalAmount = this.subtotal;
   next();
 });
 
