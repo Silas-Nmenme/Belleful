@@ -1,6 +1,6 @@
 ﻿﻿﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'Kwinniz19@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'Kwinniz19@gmail.com';
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0);
@@ -264,8 +264,8 @@ const renderBaseTemplate = ({ title, intro, body, ctaLabel, ctaUrl, helpText, pr
           <a href="https://facebook.com/bellefulchop" aria-label="Facebook" style="font-size: 24px; margin: 0 8px;">📘</a>
           <a href="https://twitter.com/bellefulchop" aria-label="Twitter" style="font-size: 24px; margin: 0 8px;">🐦</a>
         </div>
-        <p style="margin: 24px 0 8px 0;">Questions? <a href="mailto:${SUPPORT_EMAIL}" style="color: #3b82f6; font-weight: 600;">${SUPPORT_EMAIL}</a> | +234 800 235 5385</p>
-        <p style="margin: 12px 0 0 0; font-size: 13px; opacity: 0.7;">© 2026 Belleful Chop. All rights reserved. <a href="${FRONTEND_URL}/unsubscribe" style="color: #94a3b8;">Update preferences</a></p>
+        <p style="margin: 24px 0 8px 0;">Questions? <a href="mailto:${SUPPORT_EMAIL}" style="color: #3b82f6; font-weight: 600;">${SUPPORT_EMAIL}</a> | +234 810 990 5764</p>
+        <p style="margin: 12px 0 0 0; font-size: 13px; opacity: 0.7;">© 2026 Belleful Chop. All rights reserved.</p>
       </div>
     </div>
   </div>
@@ -346,7 +346,7 @@ const emailTemplates = {
       intro: `Your order ${order.displayId || '#'+order._id.toString().slice(-6)} has been successfully placed.`,
       body,
       ctaLabel: 'View My Orders',
-      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      ctaUrl: `${FRONTEND_URL}/login.html`,
       helpText: 'Questions? Reply to this email or contact our support team for assistance.'
     });
   },
@@ -393,7 +393,7 @@ const emailTemplates = {
       intro: `New order received for ${formatCurrency(order.totalAmount)}.`,
       body,
       ctaLabel: 'Open Admin Dashboard',
-      ctaUrl: `${FRONTEND_URL}/admin/orders`,
+      ctaUrl: `${FRONTEND_URL}/admin-login.html`,
       helpText: 'Keep orders moving quickly by approving and processing this request promptly.'
     });
   },
@@ -443,7 +443,7 @@ const emailTemplates = {
       intro: `Update for ${order.displayId || '#'+order._id.toString().slice(-6)}.`,
       body,
       ctaLabel: 'Track Your Order',
-      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      ctaUrl: `${FRONTEND_URL}/login.html`,
       helpText: 'If you need additional support, reply to this email or contact our customer team.'
     });
   },
@@ -482,7 +482,7 @@ const emailTemplates = {
       intro: `Your order ${order.displayId || '#'+order._id.toString().slice(-6)} has been received.`,
       body,
       ctaLabel: 'Track Your Order',
-      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      ctaUrl: `${FRONTEND_URL}/login.html`,
       helpText: 'Questions? Reply to this email or contact our support team.'
     });
   },
