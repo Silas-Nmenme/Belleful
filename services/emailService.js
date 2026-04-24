@@ -42,7 +42,7 @@ const initTransporter = () => {
 };
 
 const getAdminRecipient = () => {
-  return process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'support@belleful.com';
+  return process.env.ADMIN_EMAIL || 'Kwinniz19@gmail.com';
 };
 
 // Init on load

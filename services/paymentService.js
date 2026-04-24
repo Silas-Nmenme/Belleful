@@ -23,9 +23,9 @@ const verifyPaymentMock = async (req, res) => {
 };
 
 const getPaymentDetails = (order) => ({
-  accountName: process.env.BANK_ACCOUNT_NAME || 'Vendor Kitchen',
-  accountNumber: process.env.BANK_ACCOUNT || '1234567890',
-  bank: process.env.BANK_NAME || 'Wema Bank',
+  accountName: process.env.BANK_NAME_ACCOUNT || 'Nwosu Fortune Uchechi',
+  accountNumber: process.env.BANK_ACCOUNT || '6142357992',
+  bank: process.env.BANK_NAME || 'Opay',
   amount: order.totalAmount
 });
 

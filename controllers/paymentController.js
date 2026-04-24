@@ -75,7 +75,7 @@ exports.uploadReceipt = async (req, res) => {
     await order.save();
 
     // Notify admin of new receipt
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || 'admin@belleful.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'Kwinniz19@gmail.com';
     sendOrderStatusUpdate(order, 'pending_approval').catch(err => 
       console.error('Payment receipt notification failed:', err)
     );

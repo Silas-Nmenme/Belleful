@@ -1,6 +1,6 @@
 ﻿﻿﻿const FRONTEND_URL = process.env.FRONTEND_URL || 'https://bellefulchop.netlify.app';
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.MAIL_USER || 'Kwinniz19@gmail.com';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.CONTACT_ADMIN_EMAIL || process.env.MAIL_USER || 'Kwinniz19@gmail.com';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'Kwinniz19@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'Kwinniz19@gmail.com';
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0);
