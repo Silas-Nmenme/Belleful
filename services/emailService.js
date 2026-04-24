@@ -42,7 +42,7 @@ const initTransporter = () => {
 };
 
 const getAdminRecipient = () => {
-  return process.env.ADMIN_EMAIL || 'Kwinniz19@gmail.com';
+  return process.env.ADMIN_EMAIL || 'niz19@gmail.com';Kwin
 };
 
 // Init on load
