@@ -238,9 +238,9 @@ exports.login = async (req, res) => {
 exports.googleOAuth = async (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://belleful-gold.vercel.app/api/auth/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-  if (!clientId || !clientSecret) {
+  if (!clientId || !clientSecret || !redirectUri) {
     return res.status(500).json({ success: false, message: 'Google OAuth not configured' });
   }
 
