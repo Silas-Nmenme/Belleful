@@ -208,6 +208,15 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Check if user is Google OAuth user
+    if (user.provider === 'google' || !user.password) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'This account uses Google sign-in. Please use the "Continue with Google" button.',
+        code: 'GOOGLE_ACCOUNT'
+      });
+    }
+
     // Check password
     const passwordMatch = await user.matchPassword(password);
     if (!passwordMatch) {
@@ -248,9 +257,88 @@ exports.googleOAuth = async (req, res) => {
 
 // ===== 6. GOOGLE CALLBACK =====
 exports.googleCallback = async (req, res) => {
-  // Implementation similar to previous, create/link user
-  // Returns token + user
-  res.json({ success: true, message: 'Google auth success', token: 'jwt...' });
+  try {
+    const { code, state } = req.query;
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=config_error`);
+    }
+
+    const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+
+    // Exchange code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Get user info
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture: avatar } = payload;
+
+    if (!email) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=email_missing`);
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (user) {
+      // Update Google ID if not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        if (!user.avatar && avatar) user.avatar = avatar;
+        if (user.provider !== 'google') user.provider = 'google';
+        await user.save();
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        name: name || 'Google User',
+        email: email.toLowerCase().trim(),
+        googleId,
+        avatar,
+        isVerified: true, // Google accounts are pre-verified
+        provider: 'google',
+        role: 'user'
+      });
+    }
+
+    // Generate token
+    const accessToken = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_SECRET || process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Redirect to frontend with tokens
+    const redirectUrl = `${process.env.FRONTEND_URL}/login?token=${accessToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar
+    }))}`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+  }
 };
 
 // ===== 7. FORGOT PASSWORD =====
