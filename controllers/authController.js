@@ -236,23 +236,28 @@ exports.login = async (req, res) => {
 
 // ===== 5. GOOGLE OAUTH INIT =====
 exports.googleOAuth = async (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URL;
 
-  if (!clientId || !clientSecret || !redirectUri) {
-    return res.status(500).json({ success: false, message: 'Google OAuth not configured' });
+    if (!clientId || !clientSecret || !redirectUri) {
+      return res.status(500).json({ success: false, message: 'Google OAuth not configured' });
+    }
+
+    const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['profile', 'email'],
+      state: JSON.stringify({ ts: Date.now() })
+    });
+
+    res.json({ success: true, authUrl });
+  } catch (error) {
+    console.error('Google OAuth init error:', error);
+    res.status(500).json({ success: false, message: 'Failed to initialize Google OAuth' });
   }
-
-  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
-
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['profile', 'email'],
-    state: JSON.stringify({ ts: Date.now() })
-  });
-
-  res.json({ success: true, authUrl });
 };
 
 // ===== 6. GOOGLE CALLBACK =====
@@ -265,7 +270,7 @@ exports.googleCallback = async (req, res) => {
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URL;
 
     if (!clientId || !clientSecret || !redirectUri) {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=config_error`);
