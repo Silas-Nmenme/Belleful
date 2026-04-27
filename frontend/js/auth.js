@@ -602,6 +602,8 @@
   // Global access
   window.checkAuth = checkAuthStatus;
   window.logout = logout;
-  
+
+  // Initialize authentication when this script loads
+  initAuth();
 })();
 
