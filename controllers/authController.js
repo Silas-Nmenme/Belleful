@@ -326,6 +326,13 @@ exports.googleCallback = async (req, res) => {
       });
     }
 
+    // Send login success email for Google sign-in
+    try {
+      await sendLoginSuccessEmail(user.email, user.name);
+    } catch (emailError) {
+      console.error('Google login email failed:', emailError);
+    }
+
     // Generate token
     const accessToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
