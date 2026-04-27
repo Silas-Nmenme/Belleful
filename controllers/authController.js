@@ -208,8 +208,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if user is Google OAuth user
-    if (user.provider === 'google' || !user.password) {
+    // Check if user is Google OAuth-only account
+    if (user.provider === 'google' && !user.password) {
       return res.status(401).json({ 
         success: false, 
         message: 'This account uses Google sign-in. Please use the "Continue with Google" button.',
@@ -298,13 +298,21 @@ exports.googleCallback = async (req, res) => {
     let user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user) {
-      // Update Google ID if not set
+      // Link Google account without breaking local password login
+      let updated = false;
       if (!user.googleId) {
         user.googleId = googleId;
-        if (!user.avatar && avatar) user.avatar = avatar;
-        if (user.provider !== 'google') user.provider = 'google';
-        await user.save();
+        updated = true;
       }
+      if (!user.avatar && avatar) {
+        user.avatar = avatar;
+        updated = true;
+      }
+      if (!user.password && user.provider !== 'google') {
+        user.provider = 'google';
+        updated = true;
+      }
+      if (updated) await user.save();
     } else {
       // Create new user
       user = await User.create({
