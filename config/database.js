@@ -11,7 +11,7 @@ const connectDB = async (retries = 3) => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
-      maxPoolSize: process.env.NODE_ENV === 'production' ? 5 : 10,
+      maxPoolSize: Number(process.env.NODE_ENV === 'production' ? 5 : 10),
       socketTimeoutMS: 45000,
     });
 

@@ -81,9 +81,15 @@ exports.register = async (req, res) => {
 // ===== 2. ADMIN REGISTER (Admin-only) =====
 exports.registerAdmin = async (req, res) => {
   try {
-    // SECURITY: Check if user is already admin (prevent self-promotion)
-    if (req.user?.role === 'admin') {
-      return res.status(403).json({ success: false, message: 'Unauthorized access' });
+    const adminSecret = String(req.headers['x-admin-secret'] || req.body.adminSecret || '');
+    const storedSecret = String(process.env.ADMIN_REGISTRATION_SECRET || '');
+
+    if (!storedSecret || !adminSecret || adminSecret.length !== storedSecret.length ||
+        !crypto.timingSafeEqual(Buffer.from(adminSecret), Buffer.from(storedSecret))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin registration is not allowed without a valid secret.'
+      });
     }
 
     const errors = validationResult(req);
